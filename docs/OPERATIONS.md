@@ -4,7 +4,8 @@ Each procedure below is complete on its own. `module.stack` is the name of the m
 
 ## Get access
 
-1. Write the admin kubeconfig: `terraform output -raw kubeconfig > kubeconfig`.
+1. Write the admin kubeconfig with mode 0600, it holds the cluster-admin key:
+   `(umask 077 && terraform output -raw kubeconfig > kubeconfig)`.
 2. Set `KUBECONFIG` to that file. The certificate is valid for one year. Terraform renews it thirty days
    before it expires, on the next apply.
 3. For SSH, read the secret `ssh-private-key` from the Key Vault. The user is `admin_username`.
