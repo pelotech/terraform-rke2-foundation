@@ -44,8 +44,8 @@ run "roles" {
     error_message = "config.yaml holds the server config on servers and the agent config on agents"
   }
   assert {
-    condition     = strcontains(output.server_user_data.member, "/usr/local/lib/rke2-foundation/bootstrap.sh") && strcontains(output.server_user_data.member, "INSTALL_RKE2_TYPE")
-    error_message = "bootstrap.sh is embedded and runs the RKE2 install script"
+    condition     = strcontains(output.server_user_data.member, "/usr/local/lib/rke2-foundation/bootstrap.sh") && strcontains(output.server_user_data.member, "INSTALL_RKE2_TYPE") && strcontains(output.agent_user_data["default"], "> /etc/rancher/node/password")
+    error_message = "bootstrap.sh is embedded, runs the RKE2 install script and writes a node password that survives a reimage"
   }
   assert {
     condition     = strcontains(output.server_user_data.member, "kernel-modules-extra-$(uname -r)") && strcontains(output.agent_user_data["default"], "kernel-modules-extra-$(uname -r)")

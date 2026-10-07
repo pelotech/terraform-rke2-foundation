@@ -48,6 +48,11 @@ A changed cloud-init, for example a new `rke2_version`, applies to new instances
 3. Drain the old nodes: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
 4. Remove the old pool key and apply.
 
+A reimage in place, `az vmss reimage` after the apply, also works: the instance keeps its name, and the node
+password the bootstrap derives from that name and the agent token stays the same, so the server accepts the
+node again. A node that joined before this version has a random password; delete its secret once before the
+reimage: `kubectl -n kube-system delete secret <node>.node-password.rke2`.
+
 ## Recycle the kube-ovn pool
 
 1. Set `cni_node_pool.enabled = false`. Apply.

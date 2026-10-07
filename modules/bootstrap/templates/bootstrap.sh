@@ -48,6 +48,12 @@ else
   printf 'token: %s\n' "$(cat "$SECRET_DIR/agent-token")" > "$CONF_DIR/10-token.yaml"
 fi
 chmod 0600 "$CONF_DIR/10-token.yaml"
+
+# A node that comes back with its name, as a reimaged scale set instance does, must present the node password the
+# server stored for that name, or the server rejects it. Derived from the name and the agent token, it stays the same.
+install -d -m 0700 /etc/rancher/node
+printf '%s:%s' "$(hostname)" "$(cat "$SECRET_DIR/agent-token")" | sha256sum | cut -c1-64 > /etc/rancher/node/password
+chmod 0600 /etc/rancher/node/password
 rm -rf "$SECRET_DIR"
 
 if [ "$CIS_PROFILE" = true ] && ! id etcd >/dev/null 2>&1; then
