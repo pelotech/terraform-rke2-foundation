@@ -27,7 +27,11 @@ output "cluster_version" {
 output "cluster_endpoint" {
   description = "API server URL for the helm provider and cni-bootstrap: the public FQDN, or the internal address for a private cluster."
   value       = local.cluster_endpoint
+
+  # Consumers poll the nodes through this value, so it waits for the nodes: the endpoint exists minutes before them.
+  depends_on = [azurerm_linux_virtual_machine.server, azurerm_linux_virtual_machine_scale_set.agent]
 }
+
 
 output "cluster_ca_certificate" {
   description = "Base64 encoded PEM of the CA that signs the API server certificate, known at plan time."
