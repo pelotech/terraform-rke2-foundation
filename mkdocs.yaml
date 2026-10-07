@@ -1,0 +1,25 @@
+site_name: terraform-rke2-foundation
+site_description: Terraform modules for the RKE2 foundation stack, one submodule per cloud
+
+# docs_dir points at the repo root because the docs live alongside the code (README.md) rather
+# than in a docs/ tree. Without this, the Backstage TechDocs build (catalog-info.yaml) fails.
+docs_dir: .
+
+nav:
+  - Home: README.md
+  - Architecture: docs/ARCHITECTURE.md
+  - Bootstrap: docs/BOOTSTRAP.md
+  - Operations: docs/OPERATIONS.md
+  - Security: docs/SECURITY.md
+  - Local test: docs/LOCAL-TEST.md
+  - Azure module: modules/azure/README.md
+  - Bootstrap module: modules/bootstrap/README.md
+  - Azure example: examples/azure/README.md
+  - Local example: examples/local/README.md
+  - Design record: docs/superpowers/specs/2026-10-05-rke2-foundation-design.md
+
+exclude_docs: |
+  .terraform/
+
+plugins:
+  - techdocs-core

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Sourced by upload-snapshots.sh. put_snapshot PATH FILE puts FILE under PATH in the etcd snapshots
+# container, with the server identity.
+CLIENT_ID='${client_id}'
+CONTAINER_URL='${container_url}'
+
+${imds_token}
+${blob_put}
+put_snapshot() {
+  blob_put "$CONTAINER_URL/$1" "$2" application/octet-stream 5
+}

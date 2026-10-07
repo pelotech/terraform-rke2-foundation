@@ -1,0 +1,10 @@
+[Unit]
+Description=${description}
+
+[Timer]
+OnCalendar=${on_calendar}
+RandomizedDelaySec=${delay}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
