@@ -68,6 +68,7 @@ flowchart TD
 | `/etc/rancher/rke2/config.yaml`               | RKE2 settings, no secrets                 | cloud-init           |
 | `/etc/rancher/rke2/config.yaml.d/00-join.yaml`| `server:` the registration address        | bootstrap.sh         |
 | `/etc/rancher/rke2/config.yaml.d/10-token.yaml`| the join token, mode 0600                | bootstrap.sh         |
+| `/etc/rancher/node/password`                  | the node password, from the name and the agent token, mode 0600 | bootstrap.sh |
 | `/var/lib/rancher/rke2/server/tls/`           | the CA set, mode 0600, servers only       | bootstrap.sh         |
 | `/var/lib/rancher/rke2/server/db/`            | the etcd data disk, mounted, servers only | bootstrap.sh         |
 | `/var/lib/rancher/rke2/server/manifests/`     | cloud-provider-azure, servers only        | cloud-init           |
