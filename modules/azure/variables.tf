@@ -579,16 +579,19 @@ variable "blob_csi" {
 
 variable "entra_oidc" {
   type = object({
-    enabled         = optional(bool, false)
-    client_id       = optional(string)
-    issuer_url      = optional(string)
-    username_claim  = optional(string, "preferred_username")
-    groups_claim    = optional(string, "groups")
-    username_prefix = optional(string)
+    enabled                = optional(bool, false)
+    client_id              = optional(string)
+    issuer_url             = optional(string)
+    username_claim         = optional(string, "oid")
+    groups_claim           = optional(string, "groups")
+    username_prefix        = optional(string)
+    admin_group_object_ids = optional(list(string), [])
+    admin_object_ids       = optional(list(string), [])
+    reader_object_ids      = optional(list(string), [])
   })
   default     = {}
   nullable    = false
-  description = "Microsoft Entra ID as the API server's OIDC provider, for kubectl through kubelogin. client_id is an app registration you own. issuer_url defaults to the tenant's v2 endpoint in azure_cloud. The README section \"Access\" lists what to verify per tenant."
+  description = "Microsoft Entra ID as the API server's OIDC provider, for kubectl through kubelogin. client_id is an app registration you own, with token version 2 and group claims; issuer_url defaults to the tenant's v2 endpoint in azure_cloud. The username claim is oid, present in user and service principal tokens alike. Servers apply a ClusterRoleBinding to cluster-admin for admin_group_object_ids and admin_object_ids, and read-only bindings for reader_object_ids, before the first node joins. The README section \"Access\" lists what the app registration needs."
 
   validation {
     condition     = !var.entra_oidc.enabled || var.entra_oidc.client_id != null

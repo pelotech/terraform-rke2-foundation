@@ -77,9 +77,14 @@ output "admin_client_key" {
 }
 
 output "kubeconfig" {
-  description = "Admin kubeconfig for cluster_endpoint, the break-glass path for humans."
+  description = "Admin kubeconfig for cluster_endpoint with the client certificate, the break-glass path. With entra_oidc on, people and pipelines use kubeconfig_entra."
   value       = module.bootstrap.kubeconfig
   sensitive   = true
+}
+
+output "kubeconfig_entra" {
+  description = "Kubeconfig for cluster_endpoint with the kubelogin exec block, null unless entra_oidc is on. It holds no secret: kubelogin fetches the token."
+  value       = local.kubeconfig_entra
 }
 
 # Subscription and tenant, for charts that need them next to the identities.

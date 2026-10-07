@@ -30,7 +30,7 @@ locals {
   ]
 
   # RKE2 applies these from its manifests directory; bootstrap: true runs the chart before the nodes are schedulable.
-  server_manifests = {
+  server_manifests = merge(local.entra_access_manifests, {
     "azure-cloud-config.yaml" = yamlencode({
       apiVersion = "v1"
       kind       = "Secret"
@@ -67,5 +67,5 @@ locals {
         })
       }
     })
-  }
+  })
 }
