@@ -47,6 +47,10 @@ run "roles" {
     condition     = strcontains(output.server_user_data.member, "/usr/local/lib/rke2-foundation/bootstrap.sh") && strcontains(output.server_user_data.member, "INSTALL_RKE2_TYPE")
     error_message = "bootstrap.sh is embedded and runs the RKE2 install script"
   }
+  assert {
+    condition     = strcontains(output.server_user_data.member, "kernel-modules-extra-$(uname -r)") && strcontains(output.agent_user_data["default"], "kernel-modules-extra-$(uname -r)")
+    error_message = "every node installs the iptables modules of its running kernel before RKE2 starts; RHEL 10 ships them apart"
+  }
 }
 
 run "agent_user_data_follows_pools" {

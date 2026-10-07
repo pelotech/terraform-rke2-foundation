@@ -226,8 +226,9 @@ The module takes marketplace images only today. The plan for a Government image:
 
 1. Start from RHEL 10 on the marketplace, the module default. The RKE2 support matrix lists 10.0 to 10.2,
    and the DISA STIG for RHEL 10 exists. Canonical's FIPS images stop at Ubuntu 22.04.
-2. At build time, apply the DISA STIG profile with OpenSCAP, turn FIPS on, install `rke2-selinux`, open the
-   RKE2 ports in firewalld, and preload the RKE2 artifacts of the pinned release.
+2. At build time, apply the DISA STIG profile with OpenSCAP, turn FIPS on, install `rke2-selinux` and the
+   `kernel-modules-extra` build of the image kernel, open the RKE2 ports in firewalld, and preload the RKE2
+   artifacts of the pinned release.
 3. Publish each build as a version in a Compute Gallery.
 4. Add a gallery image input to the module, which does not exist yet. Then replace the servers and roll the
    pools, as in Upgrade RKE2.

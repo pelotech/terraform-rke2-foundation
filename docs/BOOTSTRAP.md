@@ -39,6 +39,10 @@ Two servers that join etcd at the same moment make one of them fail its first st
 error. systemd restarts the service five seconds later and the second attempt joins. The bootstrap waits for
 `/readyz` through it and still ends with `done`.
 
+On RHEL 10 the bootstrap installs `kernel-modules-extra` for the running kernel before RKE2. The Azure
+Marketplace image ships without the iptables modules that kube-proxy and kube-ovn need, and the RKE2 RPM pulls
+the build of the newest kernel, which runs only after a reboot.
+
 ```mermaid
 flowchart TD
   A["Node boots"] --> B["Fetch secrets"]

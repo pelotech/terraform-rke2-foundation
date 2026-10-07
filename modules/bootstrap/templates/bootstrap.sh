@@ -66,6 +66,13 @@ if [ "$DISABLE_FIREWALLD" = true ] && systemctl is-enabled firewalld.service >/d
   systemctl disable --now firewalld.service
 fi
 
+# Two reasons. RHEL 10 moved the iptables modules that kube-proxy and the CNI need into kernel-modules-extra, which
+# the Azure Marketplace image lacks. And the RKE2 RPM requires that package but dnf resolves it to the newest kernel,
+# which runs only after a reboot; the running kernel's build loads now and pulls no second kernel.
+if command -v dnf >/dev/null 2>&1 && ! modprobe -n nft_compat >/dev/null 2>&1; then
+  dnf install -y "kernel-modules-extra-$(uname -r)"
+fi
+
 log "installing RKE2 $RKE2_VERSION as $ROLE"
 curl -sfL "$INSTALL_URL" | INSTALL_RKE2_VERSION="$RKE2_VERSION" INSTALL_RKE2_TYPE="$ROLE" sh -
 
