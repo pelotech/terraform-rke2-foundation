@@ -64,6 +64,11 @@ output "cni_node_selector" {
   value       = local.cni_node_selector
 }
 
+output "selinux_container_dirs_resolved" {
+  description = "Host directories the bootstrap labels container_file_t on a host with SELinux on, from the CNI profile; introspection for tests."
+  value       = local.cni_profile.selinux_container_dirs
+}
+
 # Credentials. The certificate is public; the key and the kubeconfig are secret.
 output "admin_client_certificate" {
   description = "Base64 encoded PEM admin client certificate, system:admin in system:masters, for the helm provider's client_certificate."

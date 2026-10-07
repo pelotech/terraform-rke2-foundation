@@ -16,6 +16,14 @@ run "rke2_version_must_be_1_36_or_newer" {
   expect_failures = [var.rke2_version]
 }
 
+run "selinux_container_dirs_must_be_absolute" {
+  command = plan
+  variables {
+    selinux_container_dirs = ["etc/origin"]
+  }
+  expect_failures = [var.selinux_container_dirs]
+}
+
 run "cni_must_be_known" {
   command = plan
   variables {

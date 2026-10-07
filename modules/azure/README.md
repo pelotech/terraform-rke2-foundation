@@ -407,6 +407,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="output_oidc_issuer_url"></a> [oidc\_issuer\_url](#output\_oidc\_issuer\_url) | OIDC issuer URL of the cluster, null when workload identity is off. Use it for federated identity credentials you create yourself. |
 | <a name="output_region"></a> [region](#output\_region) | Same value as location, for consumers that expect an output named region. |
 | <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | Resource group holding the network, Key Vault, identities and load balancers. |
+| <a name="output_selinux_container_dirs_resolved"></a> [selinux\_container\_dirs\_resolved](#output\_selinux\_container\_dirs\_resolved) | Host directories the bootstrap labels container\_file\_t on a host with SELinux on, from the CNI profile; introspection for tests. |
 | <a name="output_server_config_resolved"></a> [server\_config\_resolved](#output\_server\_config\_resolved) | RKE2 server config.yaml as a map, without the join drop-ins. |
 | <a name="output_server_identity_client_id"></a> [server\_identity\_client\_id](#output\_server\_identity\_client\_id) | Client ID of the server identity, which cloud-provider-azure and cluster-autoscaler use. |
 | <a name="output_server_identity_id"></a> [server\_identity\_id](#output\_server\_identity\_id) | Resource ID of the server identity. |

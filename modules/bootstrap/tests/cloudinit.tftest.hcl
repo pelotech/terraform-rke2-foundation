@@ -20,7 +20,7 @@ run "roles" {
     error_message = "the role drives the install type and the join flow"
   }
   assert {
-    condition     = strcontains(output.server_user_data.member, "REGISTRATION_ADDRESS=10.0.0.4") && strcontains(output.server_user_data.member, "RKE2_VERSION=v1.36.5+rke2r1") && strcontains(output.server_user_data.member, "BOOTSTRAP_WAIT_SECONDS=90") && strcontains(output.server_user_data.member, "INSTALL_URL=https://get.rke2.io") && strcontains(output.server_user_data.member, "CIS_PROFILE=false")
+    condition     = strcontains(output.server_user_data.member, "REGISTRATION_ADDRESS=10.0.0.4") && strcontains(output.server_user_data.member, "RKE2_VERSION=v1.36.5+rke2r1") && strcontains(output.server_user_data.member, "BOOTSTRAP_WAIT_SECONDS=90") && strcontains(output.server_user_data.member, "INSTALL_URL=https://get.rke2.io") && strcontains(output.server_user_data.member, "CIS_PROFILE=false") && strcontains(output.server_user_data.member, "SELINUX_CONTAINER_DIRS=\"\"")
     error_message = "the env file carries every setting bootstrap.sh reads"
   }
   assert {
@@ -76,6 +76,18 @@ run "renewal_timer_ships_by_default" {
   assert {
     condition     = strcontains(output.server_user_data.member, "DISABLE_FIREWALLD=true") && strcontains(output.server_user_data.member, "/usr/local/lib/rke2-foundation/renew-certificates.sh") && strcontains(output.server_user_data.member, "ExecStart=/usr/local/lib/rke2-foundation/renew-certificates.sh") && strcontains(output.agent_user_data["default"], "/etc/systemd/system/rke2-foundation-renew.timer")
     error_message = "every node gets the renewal script, service and timer, and the env file carries the firewalld switch"
+  }
+}
+
+run "selinux_dirs_reach_every_role" {
+  command = plan
+  variables {
+    agent_pools            = { default = {} }
+    selinux_container_dirs = ["/etc/origin", "/run/ovn"]
+  }
+  assert {
+    condition     = strcontains(output.server_user_data.member, "SELINUX_CONTAINER_DIRS=\"/etc/origin /run/ovn\"") && strcontains(output.agent_user_data["default"], "SELINUX_CONTAINER_DIRS=\"/etc/origin /run/ovn\"") && strcontains(output.agent_user_data["default"], "semanage fcontext -a -t container_file_t")
+    error_message = "the env file carries the directories on servers and agents, and bootstrap.sh labels them"
   }
 }
 

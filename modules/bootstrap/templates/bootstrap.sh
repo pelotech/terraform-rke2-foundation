@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Installs RKE2 and bootstraps or joins the cluster. /etc/rke2-foundation/env supplies ROLE,
 # INIT_CANDIDATE, REGISTRATION_ADDRESS, RKE2_VERSION, INSTALL_URL, BOOTSTRAP_WAIT_SECONDS, CIS_PROFILE,
-# DISABLE_FIREWALLD, ETCD_DISK_DEVICE and SECRETS, the name=path pairs that fetch-secrets.sh writes
-# under SECRET_DIR.
+# DISABLE_FIREWALLD, ETCD_DISK_DEVICE, SELINUX_CONTAINER_DIRS and SECRETS, the name=path pairs that
+# fetch-secrets.sh writes under SECRET_DIR.
 set -euo pipefail
 
 # shellcheck source=/dev/null
@@ -70,6 +70,20 @@ done
 # RKE2 documents firewalld as incompatible with its networking; a hardened image can keep it with its own rules.
 if [ "$DISABLE_FIREWALLD" = true ] && systemctl is-enabled firewalld.service >/dev/null 2>&1; then
   systemctl disable --now firewalld.service
+fi
+
+# SELinux lets a pod that runs as container_t write container_file_t only. A file context rule survives a relabel,
+# and /run is empty at boot, so a tmpfiles entry creates those directories again with the same label.
+if [ -n "$SELINUX_CONTAINER_DIRS" ] && selinuxenabled 2>/dev/null; then
+  rm -f /etc/tmpfiles.d/rke2-foundation.conf
+  for dir in $SELINUX_CONTAINER_DIRS; do
+    semanage fcontext -a -t container_file_t "$dir(/.*)?" 2>/dev/null || semanage fcontext -m -t container_file_t "$dir(/.*)?"
+    case "$dir" in
+      /run/*) printf 'd %s 0755 root root -\n' "$dir" >> /etc/tmpfiles.d/rke2-foundation.conf ;;
+    esac
+    install -d "$dir"
+    restorecon -R "$dir"
+  done
 fi
 
 # Two reasons. RHEL 10 moved the iptables modules that kube-proxy and the CNI need into kernel-modules-extra, which
