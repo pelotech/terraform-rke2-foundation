@@ -21,6 +21,13 @@ resource "azurerm_network_interface_security_group_association" "server" {
   count                     = var.servers.count
   network_interface_id      = azurerm_network_interface.server[count.index].id
   network_security_group_id = azurerm_network_security_group.nodes.id
+
+  # One write at a time per NIC: the provider locks pool associations by name and this one by id, so they overlap
+  # and Azure cancels one of the two.
+  depends_on = [
+    azurerm_network_interface_backend_address_pool_association.server_api,
+    azurerm_network_interface_backend_address_pool_association.server_api_public,
+  ]
 }
 
 resource "azurerm_network_interface_backend_address_pool_association" "server_api" {
