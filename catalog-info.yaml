@@ -1,0 +1,16 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: terraform-rke2-foundation
+  description: Terraform modules for an RKE2 cluster and the cloud resources it needs, one submodule per cloud
+  tags:
+    - terraform
+    - k8s
+  annotations:
+    github.com/project-slug: pelotech/terraform-rke2-foundation
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: infrastructure
+  lifecycle: production
+  # Keep in sync with .github/CODEOWNERS.
+  owner: group:pelotech/foundation
