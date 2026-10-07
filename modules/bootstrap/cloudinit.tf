@@ -20,6 +20,7 @@ locals {
       "BOOTSTRAP_WAIT_SECONDS=${var.bootstrap_wait_seconds}",
       "CIS_PROFILE=${var.cis_profile}",
       "DISABLE_FIREWALLD=${var.disable_firewalld}",
+      "SELINUX_CONTAINER_DIRS=\"${join(" ", var.selinux_container_dirs)}\"",
       "ETCD_DISK_DEVICE=${var.etcd_disk_device == null ? "" : var.etcd_disk_device}",
       # Quoted: the pairs are space separated and the file is sourced by bash.
       "SECRETS=\"${join(" ", [for name, path in(spec.role == "server" ? local.server_secret_paths : local.agent_secret_paths) : "${name}=${path}"])}\"",

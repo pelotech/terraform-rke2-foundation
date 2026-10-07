@@ -43,6 +43,11 @@ On RHEL 10 the bootstrap installs `kernel-modules-extra` for the running kernel 
 Marketplace image ships without the iptables modules that kube-proxy and kube-ovn need, and the RKE2 RPM pulls
 the build of the newest kernel, which runs only after a reboot.
 
+With SELinux on, a pod that runs as `container_t` may write host directories labelled `container_file_t` only.
+The kube-ovn pods are not privileged and write their state, log and run directories on the host, so the
+bootstrap labels the directories in `selinux_container_dirs` with a file context rule, and adds a tmpfiles entry
+for the ones under `/run`, which is empty at boot. The kube-ovn profile of the Azure module supplies the list.
+
 ```mermaid
 flowchart TD
   A["Node boots"] --> B["Fetch secrets"]
@@ -72,6 +77,7 @@ flowchart TD
 | `/var/lib/rancher/rke2/server/db/`            | the etcd data disk, mounted, servers only | bootstrap.sh         |
 | `/var/lib/rancher/rke2/server/manifests/`     | cloud-provider-azure, servers only        | cloud-init           |
 | `/etc/rke2-foundation/env`                    | role, addresses, the secret list          | cloud-init           |
+| `/etc/tmpfiles.d/rke2-foundation.conf`        | the `/run` directories kube-ovn writes, SELinux hosts only | bootstrap.sh |
 | `/usr/local/lib/rke2-foundation/`             | bootstrap.sh, fetch-secrets.sh, post-bootstrap.sh, renew-certificates.sh, upload-snapshots.sh, put-snapshot.sh | cloud-init |
 | `/var/log/cloud-init-output.log`              | the bootstrap log, lines start with `rke2-foundation:` | cloud-init |
 

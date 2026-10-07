@@ -2,13 +2,16 @@ locals {
   # What each CNI choice changes. cilium and kube-ovn are installed by cni-bootstrap after this module.
   cni_profiles = {
     cilium = {
-      rke2_cni           = "none"
-      disable_kube_proxy = true
-      cni_node_pool      = null
+      rke2_cni               = "none"
+      disable_kube_proxy     = true
+      cni_node_pool          = null
+      selinux_container_dirs = []
     }
     "kube-ovn" = {
       rke2_cni           = "none"
       disable_kube_proxy = false
+      # The chart defaults for its state, log and run directories; its pods run as container_t, not privileged.
+      selinux_container_dirs = ["/etc/origin", "/opt/ovs-config", "/var/log/kube-ovn", "/var/log/ovn", "/var/log/openvswitch", "/run/openvswitch", "/run/ovn"]
       cni_node_pool = {
         labels = { "kube-ovn/role" = "master" }
         taints = {
@@ -17,9 +20,10 @@ locals {
       }
     }
     canal = {
-      rke2_cni           = "canal"
-      disable_kube_proxy = false
-      cni_node_pool      = null
+      rke2_cni               = "canal"
+      disable_kube_proxy     = false
+      cni_node_pool          = null
+      selinux_container_dirs = []
     }
   }
   cni_profile = local.cni_profiles[var.cni]

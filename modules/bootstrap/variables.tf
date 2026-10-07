@@ -227,6 +227,17 @@ variable "disable_firewalld" {
   description = "Stops and disables firewalld when the image ships it, as RKE2 documents it as incompatible with its networking. Set false on an image whose firewalld rules allow the RKE2 ports."
 }
 
+variable "selinux_container_dirs" {
+  type        = list(string)
+  default     = []
+  description = "Host directories that pods write while they run as container_t, such as the kube-ovn state and log directories. On a host with SELinux on, the bootstrap labels them container_file_t with a file context rule, and adds a tmpfiles entry for the ones under /run, which is empty at boot."
+
+  validation {
+    condition     = alltrue([for d in var.selinux_container_dirs : startswith(d, "/") && d != "/" && !endswith(d, "/")])
+    error_message = "selinux_container_dirs entries must be absolute paths without a trailing slash."
+  }
+}
+
 variable "etcd_disk_device" {
   type        = string
   default     = null

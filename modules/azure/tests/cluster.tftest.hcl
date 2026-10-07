@@ -165,6 +165,18 @@ run "kube_ovn_adds_the_cni_pool" {
     condition     = output.server_config_resolved["cni"] == "none" && !contains(keys(output.server_config_resolved), "disable-kube-proxy")
     error_message = "kube-ovn keeps kube-proxy on"
   }
+  assert {
+    condition     = tolist(output.selinux_container_dirs_resolved) == tolist(["/etc/origin", "/opt/ovs-config", "/var/log/kube-ovn", "/var/log/ovn", "/var/log/openvswitch", "/run/openvswitch", "/run/ovn"])
+    error_message = "the bootstrap labels the kube-ovn host directories for SELinux"
+  }
+}
+
+run "cilium_labels_no_host_directories" {
+  command = plan
+  assert {
+    condition     = length(output.selinux_container_dirs_resolved) == 0
+    error_message = "cilium runs privileged and needs no host directory label"
+  }
 }
 
 run "cni_pool_can_be_recycled" {
