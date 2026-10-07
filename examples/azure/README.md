@@ -36,7 +36,7 @@ IMDS, cloud-provider-azure, the load balancer during joins, the OIDC issuer publ
 4. Run the smoke test with the kubeconfig output:
 
    ```bash
-   terraform output -raw kubeconfig > kubeconfig && chmod 600 kubeconfig
+   (umask 077 && terraform output -raw kubeconfig > kubeconfig)
    KUBECONFIG=$PWD/kubeconfig ./smoke-test.sh
    ```
 
