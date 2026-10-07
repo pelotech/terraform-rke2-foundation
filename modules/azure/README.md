@@ -23,6 +23,9 @@ The helm provider and the cni-bootstrap module use its outputs. See "Install the
 - A marketplace image accepted in your subscription. The default is one pinned build of RHEL 10.2, so that
   every node runs the same image; Azure Linux is not on the RKE2 support matrix. Cloud-init stops firewalld
   on the node unless `disable_firewalld = false`.
+- RHEL 10 ships the iptables kernel modules in `kernel-modules-extra`, which the Azure Marketplace image does
+  not include. Cloud-init installs the build for the running kernel from the Red Hat Update Infrastructure before
+  RKE2 starts. A custom image must carry that package, or the node must reach a repository that has it.
 
 ## Quick start
 
