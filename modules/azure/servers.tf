@@ -119,11 +119,15 @@ resource "azurerm_linux_virtual_machine" "server" {
     ignore_changes = [custom_data]
   }
 
+  # The NIC is in its pools and NSG before the VM boots, and leaves them only after the VM is gone: Azure cancels a NIC
+  # update that overlaps the VM delete.
   depends_on = [
     azurerm_role_assignment.server,
     azurerm_key_vault_secret.node,
     azurerm_subnet_nat_gateway_association.nodes,
     azurerm_lb_rule.api,
     azurerm_network_interface_backend_address_pool_association.server_api,
+    azurerm_network_interface_backend_address_pool_association.server_api_public,
+    azurerm_network_interface_security_group_association.server,
   ]
 }
