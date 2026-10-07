@@ -1,0 +1,14 @@
+# Trivy IaC findings to suppress.
+# Format: one Trivy check ID per line.
+# Add a comment above each entry explaining why it is suppressed.
+
+# The Key Vault has no network ACL by default: cloud-init on every node reads its secrets through
+# the public endpoint behind the NAT Gateway, and an operator applying from outside Azure must
+# write them. key_vault.network_access = "Private" is the hardened path, with a private endpoint
+# the consumer provides.
+AVD-AZU-0013
+
+# The OIDC issuer storage account serves public documents by design (the discovery document and
+# JWKS Entra reads), so it has no network rules. The blob CSI account is open only when the
+# consumer sets blob_csi.network_access = "Public".
+AVD-AZU-0012

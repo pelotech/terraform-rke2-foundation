@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Publishes the OIDC discovery document and JWKS to the issuer storage account, so Entra can validate
+# service account tokens. Runs on every server once the API is ready; the upload is idempotent.
+set -euo pipefail
+CLIENT_ID='${client_id}'
+ISSUER_URL='${issuer_url}'
+BLOB_BASE='${blob_endpoint}$web'
+WORK_DIR=$(mktemp -d)
+trap 'rm -rf "$WORK_DIR"' EXIT
+
+${imds_token}
+${blob_put}
+put_blob() {
+  blob_put "$BLOB_BASE/$1" "$2" application/json 90
+}
+
+kubectl get --raw /openid/v1/jwks > "$WORK_DIR/jwks"
+printf '{"issuer":"%s","jwks_uri":"%sopenid/v1/jwks","response_types_supported":["id_token"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["RS256"]}\n' \
+  "$ISSUER_URL" "$ISSUER_URL" > "$WORK_DIR/openid-configuration"
+put_blob openid/v1/jwks "$WORK_DIR/jwks"
+put_blob .well-known/openid-configuration "$WORK_DIR/openid-configuration"

@@ -1,0 +1,24 @@
+global
+  log stdout format raw local0
+defaults
+  mode tcp
+  log global
+  option tcplog
+  timeout connect 5s
+  timeout client 1h
+  timeout server 1h
+frontend api
+  bind *:6443
+  # Like an Azure load balancer with no healthy backend: refuse the connection instead of accepting it.
+  tcp-request connection reject if { nbsrv(servers_api) lt 1 }
+  default_backend servers_api
+backend servers_api
+  option tcp-check
+__API_SERVERS__
+frontend supervisor
+  bind *:9345
+  tcp-request connection reject if { nbsrv(servers_supervisor) lt 1 }
+  default_backend servers_supervisor
+backend servers_supervisor
+  option tcp-check
+__SUPERVISOR_SERVERS__
