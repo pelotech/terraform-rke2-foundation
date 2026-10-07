@@ -152,16 +152,21 @@ Terraform ignores a changed cloud-init on server nodes, so a changed setting nev
 
 ## Access
 
-- Terraform and CI authenticate with the admin client certificate; humans use the `kubeconfig` output as
-  the break-glass path.
+- With `entra_oidc` on, people and pipelines sign in through Entra ID with kubelogin, from the
+  `kubeconfig_entra` output, which holds no secret. The admin client certificate in the `kubeconfig` output
+  is the break-glass path. Without `entra_oidc`, the certificate is the only credential.
 - By default, the API server accepts connections from the internet. To accept only some addresses, set
   `cluster_endpoint_authorized_ip_ranges`. For a private cluster, set
   `cluster_endpoint_public_access = false`.
 - `entra_oidc` makes Entra ID the API server's OIDC provider and fills `kube_exec` with the kubelogin
-  block the AKS foundation emits, with `--server-id` set to your app registration. Verify on your tenant
-  before relying on it: the token audience and issuer form depend on the app registration's accepted
-  token version, and the `groups` claim is omitted above a group count Entra does not embed. Cluster role
-  bindings for those groups are the GitOps layer's job.
+  block the AKS foundation emits, with `--server-id` set to your app registration. The app registration
+  needs: token version 2, so the issuer is the tenant's v2.0 endpoint; `SecurityGroup` in its group
+  membership claims; a scope that pre-authorizes the Azure CLI client, so `--login azurecli` gets a token
+  without a consent prompt; and a service principal. One app serves every RKE2 cluster in the tenant.
+- The username claim is `oid`, which user and service principal tokens both carry. Servers apply
+  `entra-access.yaml` before the first node joins: cluster-admin for `admin_group_object_ids` and
+  `admin_object_ids`, and view plus the kube-system Secrets of Helm releases for `reader_object_ids`, so
+  a plan identity can refresh them. Entra omits the `groups` claim above about 200 groups per user.
 
 ## Workload identity
 
@@ -317,7 +322,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_disable_components"></a> [disable\_components](#input\_disable\_components) | Packaged RKE2 components not to deploy. Default: no snapshot controller, which the GitOps layer provides, as on AKS. The ingress is ingress\_controller. | `list(string)` | <pre>[<br/>  "rke2-snapshot-controller",<br/>  "rke2-snapshot-controller-crd",<br/>  "rke2-snapshot-validation-webhook"<br/>]</pre> | no |
 | <a name="input_disable_firewalld"></a> [disable\_firewalld](#input\_disable\_firewalld) | Stops firewalld at bootstrap on images that ship it, such as RHEL. Set false on an image whose firewalld rules allow the RKE2 ports. | `bool` | `true` | no |
 | <a name="input_dns_service_ip"></a> [dns\_service\_ip](#input\_dns\_service\_ip) | Cluster DNS service IP inside service\_cidr. null uses the tenth address. | `string` | `null` | no |
-| <a name="input_entra_oidc"></a> [entra\_oidc](#input\_entra\_oidc) | Microsoft Entra ID as the API server's OIDC provider, for kubectl through kubelogin. client\_id is an app registration you own. issuer\_url defaults to the tenant's v2 endpoint in azure\_cloud. The README section "Access" lists what to verify per tenant. | <pre>object({<br/>    enabled         = optional(bool, false)<br/>    client_id       = optional(string)<br/>    issuer_url      = optional(string)<br/>    username_claim  = optional(string, "preferred_username")<br/>    groups_claim    = optional(string, "groups")<br/>    username_prefix = optional(string)<br/>  })</pre> | `{}` | no |
+| <a name="input_entra_oidc"></a> [entra\_oidc](#input\_entra\_oidc) | Microsoft Entra ID as the API server's OIDC provider, for kubectl through kubelogin. client\_id is an app registration you own, with token version 2 and group claims; issuer\_url defaults to the tenant's v2 endpoint in azure\_cloud. The username claim is oid, present in user and service principal tokens alike. Servers apply a ClusterRoleBinding to cluster-admin for admin\_group\_object\_ids and admin\_object\_ids, and read-only bindings for reader\_object\_ids, before the first node joins. The README section "Access" lists what the app registration needs. | <pre>object({<br/>    enabled                = optional(bool, false)<br/>    client_id              = optional(string)<br/>    issuer_url             = optional(string)<br/>    username_claim         = optional(string, "oid")<br/>    groups_claim           = optional(string, "groups")<br/>    username_prefix        = optional(string)<br/>    admin_group_object_ids = optional(list(string), [])<br/>    admin_object_ids       = optional(list(string), [])<br/>    reader_object_ids      = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_etcd_backup"></a> [etcd\_backup](#input\_etcd\_backup) | Hourly upload of each new etcd snapshot from every server to a private storage account of its own, with the server identity, under <name>/<server>/<file>. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention\_days. Only the node subnet reaches the account; with existing\_vnet, that subnet needs the Microsoft.Storage service endpoint. The account name derives from tags.Owner and name unless storage\_account\_name is set. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    retention_days       = optional(number, 30)<br/>    replication_type     = optional(string, "LRS")<br/>    storage_account_name = optional(string)<br/>  })</pre> | `{}` | no |
 | <a name="input_existing_vnet"></a> [existing\_vnet](#input\_existing\_vnet) | Use an existing VNet and node subnet. The module then creates no network and no NAT Gateway, so the subnet must provide egress. api\_private\_ip is the static address of the API load balancer; null lets Azure pick one. | <pre>object({<br/>    vnet_id        = string<br/>    node_subnet_id = string<br/>    api_private_ip = optional(string)<br/>  })</pre> | `null` | no |
 | <a name="input_extra_agent_config"></a> [extra\_agent\_config](#input\_extra\_agent\_config) | RKE2 agent config keys merged last into every agent's config.yaml. They override the module's keys. | `any` | `{}` | no |
@@ -389,7 +394,8 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="output_key_vault_id"></a> [key\_vault\_id](#output\_key\_vault\_id) | ID of the Key Vault holding the tokens, the CA set and the generated SSH key. |
 | <a name="output_key_vault_name"></a> [key\_vault\_name](#output\_key\_vault\_name) | Name of that Key Vault. |
 | <a name="output_kube_exec"></a> [kube\_exec](#output\_kube\_exec) | kubelogin exec block for the helm provider and cni-bootstrap, null unless entra\_oidc is on. Without it, use admin\_client\_certificate and admin\_client\_key. |
-| <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | Admin kubeconfig for cluster\_endpoint, the break-glass path for humans. |
+| <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | Admin kubeconfig for cluster\_endpoint with the client certificate, the break-glass path. With entra\_oidc on, people and pipelines use kubeconfig\_entra. |
+| <a name="output_kubeconfig_entra"></a> [kubeconfig\_entra](#output\_kubeconfig\_entra) | Kubeconfig for cluster\_endpoint with the kubelogin exec block, null unless entra\_oidc is on. It holds no secret: kubelogin fetches the token. |
 | <a name="output_location"></a> [location](#output\_location) | Azure region of the stack. |
 | <a name="output_nat_gateway_public_ips"></a> [nat\_gateway\_public\_ips](#output\_nat\_gateway\_public\_ips) | Public IP addresses of the NAT Gateway, for allow lists. Empty with existing\_vnet. |
 | <a name="output_node_resource_group_name"></a> [node\_resource\_group\_name](#output\_node\_resource\_group\_name) | Resource group holding the nodes and what the cloud provider and CSI driver create. |

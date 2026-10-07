@@ -44,6 +44,6 @@ Egress goes through the NAT Gateway. `nat_gateway_public_ips` lists its addresse
 | `secrets_encryption`, on by default | Encrypts Secrets at rest in etcd.                                   |
 | `cis_profile`                    | Runs RKE2 with `profile: cis` and prepares the host for it.            |
 | `image`                          | A FIPS marketplace image, with its purchase plan in `image.plan`. The module takes no gallery image yet. |
-| `entra_oidc`                     | Entra ID as the API server's OIDC provider, for kubelogin. Verify the token audience on your tenant first. |
+| `entra_oidc`                     | Entra ID as the API server's OIDC provider, for kubelogin, with cluster-admin and read-only bindings applied at bootstrap. The client certificate stays as break-glass. |
 
 RKE2 itself ships BoringCrypto builds. Of the bundled CNIs, only Canal is rebuilt for FIPS.
