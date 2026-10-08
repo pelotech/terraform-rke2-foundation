@@ -123,10 +123,19 @@ FIPS-enabled nodes; apply the same judgement here.
   Azure provider supports AKS only.
 - A changed cloud-init, for example a new `rke2_version`, goes to the scale set model. With the azurerm
   defaults the provider then upgrades and reimages every running instance of the pool, one at a time and
-  without a drain. Set the provider features block below to keep that step manual. To roll an instance after
-  a drain, run `az vmss deallocate`, `az vmss update-instances`, `az vmss reimage`, then `az vmss start`,
-  each with `--resource-group rg-<name>-nodes --name vmss-<name>-<pool> --instance-ids <id>`. The deallocate
-  is required when the model moves the pool to the NVMe disk controller, for example from a v5 to a v6 size.
+  without a drain. Set the provider features block below to keep that step manual. After a `kubectl drain`,
+  roll one instance with the `az vmss` commands for its change, each with
+  `--resource-group rg-<name>-nodes --name vmss-<name>-<pool> --instance-ids <id>`:
+
+  | Change                                        | Commands, in order                                   |
+  | --------------------------------------------- | ---------------------------------------------------- |
+  | cloud-init                                    | `update-instances`, `reimage`                        |
+  | size, same disk controller                    | `update-instances`, `reimage`                        |
+  | size to NVMe from SCSI, for example v5 to v6  | `deallocate`, `update-instances`, `reimage`, `start` |
+
+  `update-instances` copies the model onto the instance, `reimage` builds a new OS disk from it and runs
+  cloud-init again, `deallocate` is what lets Azure change the disk controller, and a reimage of a
+  deallocated instance leaves it deallocated, hence the `start`.
   ```hcl
   provider "azurerm" {
     features {

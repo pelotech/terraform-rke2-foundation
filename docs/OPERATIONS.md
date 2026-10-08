@@ -42,13 +42,16 @@ server is replaced with it, and the snapshots on that disk go with it.
 ## Roll an agent pool
 
 A changed cloud-init or size goes to the pool's instance template; running instances keep what they booted
-with. Roll them one at a time:
+with until they are replaced. Each level has one job:
 
-1. Apply, so that the template has the change.
-2. Drain the node: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
-3. Replace the instance with the cloud's tooling. The cloud module README, section "Agent pools", has the
-   commands.
-4. Wait until the node is Ready. Repeat for the next instance.
+| Level      | Tool        | Step                                                                               |
+| ---------- | ----------- | ---------------------------------------------------------------------------------- |
+| Terraform  | `tofu apply`| Writes the change to the instance template. Running instances are not touched.    |
+| Kubernetes | `kubectl`   | `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data` before the roll. |
+| Cloud      | cloud CLI   | Replaces one instance from the template; see the cloud module README, "Agent pools". |
+
+Roll one instance at a time and wait until its node is Ready before the next. The instance keeps its name,
+the bootstrap derives the node password from that name, and the server accepts the node again.
 
 To replace a pool instead, for example to rename it:
 
@@ -56,17 +59,6 @@ To replace a pool instead, for example to rename it:
 2. Apply. Wait until its nodes are Ready.
 3. Drain the old nodes: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
 4. Remove the old pool key and apply.
-
-## Reimage an agent node
-
-A reimage gives an instance a new OS disk from the scale set model, and cloud-init runs again. The instance
-keeps its name. The bootstrap calculates the node password from that name and the agent token. The password
-stays the same, and the server accepts the node again.
-
-1. Apply the change, so that the scale set model has the new cloud-init.
-2. Drain the node: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
-3. Run `az vmss reimage --resource-group rg-<name>-nodes --name vmss-<name>-<pool> --instance-ids <id>`.
-4. Wait until the node is Ready. Repeat for the next instance.
 
 ## Recycle the kube-ovn pool
 
