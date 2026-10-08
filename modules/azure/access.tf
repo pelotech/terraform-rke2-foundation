@@ -1,5 +1,7 @@
 locals {
   entra_oidc_issuer_url = coalesce(var.entra_oidc.issuer_url, "https://${local.azure_cloud.entra_login_host}/${data.azurerm_client_config.current.tenant_id}/v2.0")
+  # Without a prefix the API server prepends the issuer URL to every username that is not an email; "-" turns that off.
+  entra_username_prefix = var.entra_oidc.username_prefix == null ? "" : var.entra_oidc.username_prefix
 
   entra_oidc_apiserver_args = var.entra_oidc.enabled ? [
     for flag, value in {
@@ -7,7 +9,7 @@ locals {
       "oidc-client-id"       = var.entra_oidc.client_id
       "oidc-username-claim"  = var.entra_oidc.username_claim
       "oidc-groups-claim"    = var.entra_oidc.groups_claim
-      "oidc-username-prefix" = var.entra_oidc.username_prefix
+      "oidc-username-prefix" = var.entra_oidc.username_prefix == null ? "-" : var.entra_oidc.username_prefix
     } : "${flag}=${value}" if value != null
   ] : []
 
@@ -20,7 +22,7 @@ locals {
   } : null
 
   # Subject names as the API server derives them: the raw group id, and the username prefix before an object id.
-  entra_user_name = { for id in concat(var.entra_oidc.admin_object_ids, var.entra_oidc.reader_object_ids) : id => "${coalesce(var.entra_oidc.username_prefix, "")}${id}" }
+  entra_user_name = { for id in concat(var.entra_oidc.admin_object_ids, var.entra_oidc.reader_object_ids) : id => "${local.entra_username_prefix}${id}" }
   entra_admin_subjects = concat(
     [for id in var.entra_oidc.admin_group_object_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "Group", name = id }],
     [for id in var.entra_oidc.admin_object_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "User", name = local.entra_user_name[id] }],

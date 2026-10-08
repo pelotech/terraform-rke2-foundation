@@ -20,8 +20,9 @@ run "entra_oidc_in_azure_government" {
       "oidc-client-id=22222222-2222-2222-2222-222222222222",
       "oidc-username-claim=oid",
       "oidc-groups-claim=groups",
+      "oidc-username-prefix=-",
     ])
-    error_message = "the Gov v2 issuer for the tenant, the app as audience, default claims"
+    error_message = "the Gov v2 issuer for the tenant, the app as audience, default claims, no username prefix"
   }
   assert {
     condition     = output.kube_exec.command == "kubelogin" && output.kube_exec.args == ["get-token", "--login", "azurecli", "--server-id", "22222222-2222-2222-2222-222222222222", "--environment", "AzureUSGovernmentCloud"]
@@ -79,6 +80,22 @@ run "entra_subjects_get_bindings_and_a_kubeconfig" {
   assert {
     condition     = yamldecode(output.kubeconfig_entra).users[0].user.exec.command == "kubelogin" && contains(yamldecode(output.kubeconfig_entra).users[0].user.exec.args, "22222222-2222-2222-2222-222222222222") && !strcontains(output.kubeconfig_entra, "client-key-data")
     error_message = "the Entra kubeconfig carries the kubelogin exec block and no secret"
+  }
+}
+
+run "entra_object_ids_without_a_prefix" {
+  command = apply
+  variables {
+    entra_oidc = {
+      enabled           = true
+      client_id         = "22222222-2222-2222-2222-222222222222"
+      admin_object_ids  = ["44444444-4444-4444-4444-444444444444"]
+      reader_object_ids = ["55555555-5555-5555-5555-555555555555"]
+    }
+  }
+  assert {
+    condition     = contains(output.server_config_resolved["kube-apiserver-arg"], "oidc-username-prefix=-") && strcontains(output.server_manifests_resolved["entra-access.yaml"], "\"name\": \"44444444-4444-4444-4444-444444444444\"") && strcontains(output.server_manifests_resolved["entra-access.yaml"], "\"name\": \"55555555-5555-5555-5555-555555555555\"")
+    error_message = "a null prefix renders, tells the API server to add none, and binds the bare object ids"
   }
 }
 
