@@ -137,6 +137,8 @@ FIPS-enabled nodes; apply the same judgement here.
 - `image` is one marketplace image for every node. The default is one pinned build of RHEL 10.2, so that every
   node runs the same image. To move to a new build, set `image.version`, then replace the servers and roll the
   pools. Azure Linux is not on the RKE2 support matrix.
+- The bootstrap finds the etcd disk through the `/dev/disk/azure/data/by-lun` link that azure-vm-utils creates on
+  SCSI and NVMe VMs alike. A custom image must include that package.
 - Cloud-init stops firewalld on the node unless `disable_firewalld = false`.
 - On RHEL 10, cloud-init installs `kernel-modules-extra` for the running kernel from the Red Hat Update
   Infrastructure before RKE2 starts. The Azure Marketplace image does not include the iptables modules that
