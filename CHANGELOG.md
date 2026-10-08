@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.1.2...v0.2.0) (2026-10-08)
+
+
+### Features
+
+* **azure:** tag pools with their labels and taints for a scale from zero ([#23](https://github.com/pelotech/terraform-rke2-foundation/issues/23)) ([f5b106d](https://github.com/pelotech/terraform-rke2-foundation/commit/f5b106d5ad509345040c36612bc6388d10f74111))
+
+
+### Bug Fixes
+
+* **azure:** keep the agent pools in the load balancer across applies ([#25](https://github.com/pelotech/terraform-rke2-foundation/issues/25)) ([1d5d0a1](https://github.com/pelotech/terraform-rke2-foundation/commit/1d5d0a157df988879d8043a714abe06832b262c9))
+* **bootstrap:** grow /var into the free space of its volume group ([#22](https://github.com/pelotech/terraform-rke2-foundation/issues/22)) ([c146b0b](https://github.com/pelotech/terraform-rke2-foundation/commit/c146b0bb37a6ecd7942038a2cdca52a5d237ecb0))
+
 ## [0.1.2](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.1.1...v0.1.2) (2026-10-08)
 
 
