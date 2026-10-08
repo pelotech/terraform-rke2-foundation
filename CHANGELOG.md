@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.1.1...v0.1.2) (2026-10-08)
+
+
+### Bug Fixes
+
+* **azure:** expose the id of the OIDC storage account ([#20](https://github.com/pelotech/terraform-rke2-foundation/issues/20)) ([7007a64](https://github.com/pelotech/terraform-rke2-foundation/commit/7007a64ecc6dfdef2827f41116fd2fbec13802d0))
+
 ## [0.1.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.1.0...v0.1.1) (2026-10-08)
 
 
