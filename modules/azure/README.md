@@ -123,8 +123,10 @@ FIPS-enabled nodes; apply the same judgement here.
   Azure provider supports AKS only.
 - A changed cloud-init, for example a new `rke2_version`, goes to the scale set model. With the azurerm
   defaults the provider then upgrades and reimages every running instance of the pool, one at a time and
-  without a drain. Set the provider features block below to keep that step manual, then roll the pool as in
-  the docs section "Roll an agent pool".
+  without a drain. Set the provider features block below to keep that step manual. To roll an instance after
+  a drain, run `az vmss deallocate`, `az vmss update-instances`, `az vmss reimage`, then `az vmss start`,
+  each with `--resource-group rg-<name>-nodes --name vmss-<name>-<pool> --instance-ids <id>`. The deallocate
+  is required when the model moves the pool to the NVMe disk controller, for example from a v5 to a v6 size.
   ```hcl
   provider "azurerm" {
     features {
