@@ -121,6 +121,10 @@ FIPS-enabled nodes; apply the same judgement here.
   Azure provider supports AKS only.
 - A changed cloud-init, for example a new `rke2_version`, applies to new instances only. To roll a pool,
   follow the docs section "Roll an agent pool", or reimage the instances as in "Reimage an agent node".
+- v6 sizes, such as `Standard_D4as_v6`, boot only with the NVMe disk controller. A pool created with a v6
+  size gets NVMe from Azure. To move an existing pool from an older size, set both on the model in one
+  call, then roll the pool. The provider cannot set the controller on a scale set:
+  `az vmss update -g <node resource group> -n <scale set> --set sku.name=<size> virtualMachineProfile.storageProfile.diskControllerType=NVMe`
 - For kube-ovn, `cni_node_pool` adds the one-node `cni` pool. Set `enabled = false`, then `true`, to
   recycle it, and raise cni-bootstrap `bootstrap_generation` in the same apply.
   Size that node for ovn-central and kube-ovn-controller together: cni-bootstrap's defaults request about
