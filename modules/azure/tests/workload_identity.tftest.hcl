@@ -42,7 +42,7 @@ run "disabled_creates_nothing" {
     error_message = "no issuer account, identities or storage grant"
   }
   assert {
-    condition     = !contains(keys(output.server_config_resolved), "kube-apiserver-arg") && output.oidc_issuer_url == null && output.external_dns_client_id == null
+    condition     = !contains(keys(output.server_config_resolved), "kube-apiserver-arg") && output.oidc_issuer_url == null && output.oidc_storage_account_id == null && output.external_dns_client_id == null
     error_message = "no issuer args on the API server and null outputs"
   }
 }

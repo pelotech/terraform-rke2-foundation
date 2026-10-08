@@ -406,6 +406,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="output_node_security_group_id"></a> [node\_security\_group\_id](#output\_node\_security\_group\_id) | ID of the network security group on every node, where cloud-provider-azure adds Service rules. |
 | <a name="output_node_subnet_id"></a> [node\_subnet\_id](#output\_node\_subnet\_id) | ID of the subnet every node and private endpoint uses. |
 | <a name="output_oidc_issuer_url"></a> [oidc\_issuer\_url](#output\_oidc\_issuer\_url) | OIDC issuer URL of the cluster, null when workload identity is off. Use it for federated identity credentials you create yourself. |
+| <a name="output_oidc_storage_account_id"></a> [oidc\_storage\_account\_id](#output\_oidc\_storage\_account\_id) | Resource ID of the storage account that serves the discovery document and JWKS, null when workload identity is off. The scope for extra grants, such as a plan identity that reads the static website. |
 | <a name="output_region"></a> [region](#output\_region) | Same value as location, for consumers that expect an output named region. |
 | <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | Resource group holding the network, Key Vault, identities and load balancers. |
 | <a name="output_selinux_container_dirs_resolved"></a> [selinux\_container\_dirs\_resolved](#output\_selinux\_container\_dirs\_resolved) | Host directories the bootstrap labels container\_file\_t on a host with SELinux on, from the CNI profile; introspection for tests. |
