@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.2.0...v0.2.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **azure:** find the etcd disk through the by-lun link so NVMe servers boot ([#27](https://github.com/pelotech/terraform-rke2-foundation/issues/27)) ([14121a5](https://github.com/pelotech/terraform-rke2-foundation/commit/14121a5de3f3865f8ff241aa6248e3a025b5fb10))
+
 ## [0.2.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.1.2...v0.2.0) (2026-10-08)
 
 
