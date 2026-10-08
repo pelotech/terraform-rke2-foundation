@@ -96,8 +96,11 @@ fi
 # RHEL images give /var a small logical volume and leave the rest of the disk to the volume group; images and logs live there.
 var_lv=$(findmnt -n -o SOURCE /var 2>/dev/null || true)
 if [ -n "$var_lv" ] && [ "${var_lv#/dev/mapper/}" != "$var_lv" ] && lvextend -l +100%FREE "$var_lv" >/dev/null 2>&1; then
-  xfs_growfs /var >/dev/null 2>&1 || resize2fs "$var_lv" >/dev/null 2>&1
-  log "grew /var to $(findmnt -n -o SIZE /var)"
+  if xfs_growfs /var >/dev/null 2>&1 || resize2fs "$var_lv" >/dev/null 2>&1; then
+    log "grew /var to $(findmnt -n -o SIZE /var)"
+  else
+    log "grew the volume under /var; its filesystem is neither XFS nor ext4, grow it by hand"
+  fi
 fi
 
 log "installing RKE2 $RKE2_VERSION as $ROLE"
