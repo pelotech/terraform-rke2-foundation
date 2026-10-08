@@ -122,7 +122,7 @@ resource "azurerm_linux_virtual_machine" "server" {
   boot_diagnostics {}
 
   lifecycle {
-    # A changed cloud-init must not replace every server at once; see the README section "Replace a server".
+    # A changed cloud-init must not replace every server at once; see docs/OPERATIONS.md, "Replace a server node".
     ignore_changes = [custom_data]
   }
 

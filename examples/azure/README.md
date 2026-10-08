@@ -56,7 +56,8 @@ Check the last one with `curl "$(terraform output -raw oidc_issuer_url).well-kno
 
 Before you destroy, delete the namespaces that hold PVCs, or set `install_disk_csi = false`.
 `terraform destroy` then removes every resource. Azure keeps the Key Vault soft-deleted for 90 days, with
-purge protection. A later apply with the same `name` must set `key_vault.name` to a new value.
+purge protection, and a later apply with the same `name` recovers it. See the docs section "Destroy and create
+again".
 
 ## Cost
 

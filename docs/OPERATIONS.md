@@ -48,10 +48,16 @@ A changed cloud-init, for example a new `rke2_version`, applies to new instances
 3. Drain the old nodes: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
 4. Remove the old pool key and apply.
 
-A reimage in place, `az vmss reimage` after the apply, also works: the instance keeps its name, and the node
-password the bootstrap derives from that name and the agent token stays the same, so the server accepts the
-node again. A node that joined before this version has a random password; delete its secret once before the
-reimage: `kubectl -n kube-system delete secret <node>.node-password.rke2`.
+## Reimage an agent node
+
+A reimage gives an instance a new OS disk from the scale set model, and cloud-init runs again. The instance
+keeps its name. The bootstrap calculates the node password from that name and the agent token. The password
+stays the same, and the server accepts the node again.
+
+1. Apply the change, so that the scale set model has the new cloud-init.
+2. Drain the node: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
+3. Run `az vmss reimage --resource-group rg-<name>-nodes --name vmss-<name>-<pool> --instance-ids <id>`.
+4. Wait until the node is Ready. Repeat for the next instance.
 
 ## Recycle the kube-ovn pool
 
@@ -201,6 +207,7 @@ Where to look, in this order:
 |---|---|---|
 | `fetch-secrets: could not read <secret>` | The Key Vault refused or did not answer for 15 minutes | Check the role assignment of the node identity on the vault, the vault's network rules and the route from the subnet. Then replace the node: cloud-init runs once |
 | `waiting for <address>:9345`, repeated | No server answers on the registration address | Check the server nodes and the backend health of the internal load balancer |
+| `Node password rejected` in `journalctl -u rke2-agent` | The secret `<node>.node-password.rke2` in `kube-system` contains a different password for that node name | Delete the secret once: `kubectl -n kube-system delete secret <node>.node-password.rke2`. Then restart `rke2-agent` on the node |
 | `bootstrapping a new cluster` on a replaced server node 0 while a cluster exists | The registration address did not answer within `bootstrap_wait_seconds` | Replace server node 0 again, once the two other server nodes are healthy. Do not let two clusters share the load balancer |
 | Node `NotReady`, reason `network plugin not ready` | The CNI is not installed yet. cni-bootstrap installs it once the servers are up, and kube-ovn needs its master node first | Wait, or check cni-bootstrap |
 | Node `Ready`, pods `Pending` on taint `node.cloudprovider.kubernetes.io/uninitialized` | cloud-controller-manager is not running | Read its log in `kube-system` |
@@ -242,5 +249,7 @@ The module takes marketplace images only today. The plan for a Government image:
 
 ## Destroy and create again
 
-`terraform destroy` removes every resource except the Key Vault. Azure keeps the vault soft-deleted for 90 days,
-with purge protection. On the next apply with the same `name`, set `key_vault.name` to a new value.
+`terraform destroy` removes every resource except the Key Vault. The vault has purge protection, so Azure keeps
+it soft-deleted for 90 days. The next apply with the same `name` recovers the vault and its secrets, then writes
+the new secret values. The azurerm provider does that by default: `recover_soft_deleted_key_vaults` and
+`recover_soft_deleted_secrets` in its `features` block are on.

@@ -39,15 +39,6 @@ Two servers that join etcd at the same moment make one of them fail its first st
 error. systemd restarts the service five seconds later and the second attempt joins. The bootstrap waits for
 `/readyz` through it and still ends with `done`.
 
-On RHEL 10 the bootstrap installs `kernel-modules-extra` for the running kernel before RKE2. The Azure
-Marketplace image ships without the iptables modules that kube-proxy and kube-ovn need, and the RKE2 RPM pulls
-the build of the newest kernel, which runs only after a reboot.
-
-With SELinux on, a pod that runs as `container_t` may write host directories labelled `container_file_t` only.
-The kube-ovn pods are not privileged and write their state, log and run directories on the host, so the
-bootstrap labels the directories in `selinux_container_dirs` with a file context rule, and adds a tmpfiles entry
-for the ones under `/run`, which is empty at boot. The kube-ovn profile of the Azure module supplies the list.
-
 ```mermaid
 flowchart TD
   A["Node boots"] --> B["Fetch secrets"]
@@ -65,6 +56,21 @@ flowchart TD
   J -- no --> L["Done"]
   K --> L
 ```
+
+## Kernel modules on RHEL 10
+
+The Azure Marketplace image of RHEL 10 does not include the iptables kernel modules that kube-proxy and
+kube-ovn need. RHEL 10 supplies them in the package `kernel-modules-extra`. The bootstrap installs the build
+of that package for the running kernel before it installs RKE2. The RKE2 RPM alone installs the build for the
+newest kernel. That kernel runs only after a reboot.
+
+## SELinux
+
+With SELinux on, a pod that runs as `container_t` can write only the host directories labelled
+`container_file_t`. The kube-ovn pods are not privileged, and they write their state, log and run directories
+on the host. The bootstrap labels the directories in `selinux_container_dirs` with a file context rule. The
+directory `/run` is empty at boot, so the bootstrap also adds a tmpfiles entry for the directories under it.
+The kube-ovn profile of the Azure module supplies the list.
 
 ## Files on a node
 
