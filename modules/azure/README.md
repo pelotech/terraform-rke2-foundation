@@ -66,7 +66,7 @@ provider "helm" {
 
 ## Install the CNI
 
-Apply cni-bootstrap after this module. It needs a cni-bootstrap release with the `distribution`,
+Apply cni-bootstrap after this module. It needs cni-bootstrap v1.1.0 or later, which has the `distribution`,
 `client_certificate`, `client_key` and `k8s_service_port` inputs:
 
 ```hcl

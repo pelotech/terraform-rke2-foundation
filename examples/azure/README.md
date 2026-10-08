@@ -28,10 +28,8 @@ IMDS, cloud-provider-azure, the load balancer during joins, the OIDC issuer publ
    terraform init && terraform apply
    ```
 
-   The cni-bootstrap source is its git `main`, which must carry the RKE2 inputs: `distribution`,
-   `client_certificate`, `client_key` and `k8s_service_port`. Until that lands, a gitignored
-   `cni_override.tf` with a `module "cni"` block can point `source` at a local clone; remove it before
-   regenerating the docs.
+   To test a cni-bootstrap change, a gitignored `cni_override.tf` with a `module "cni"` block can point
+   `source` at a local clone. Remove it before you regenerate the docs.
 
 4. Run the smoke test with the kubeconfig output:
 
@@ -84,7 +82,7 @@ Visual Studio one, need a different family per role. Destroy when done.
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_cni"></a> [cni](#module\_cni) | github.com/pelotech/terraform-helm-cni-bootstrap | 65df8664c1bf78d4043d7df711cb7a4c03f04181 |
+| <a name="module_cni"></a> [cni](#module\_cni) | github.com/pelotech/terraform-helm-cni-bootstrap | v1.1.0 |
 | <a name="module_stack"></a> [stack](#module\_stack) | ../../modules/azure | n/a |
 
 ## Resources
