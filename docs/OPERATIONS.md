@@ -41,7 +41,17 @@ server is replaced with it, and the snapshots on that disk go with it.
 
 ## Roll an agent pool
 
-A changed cloud-init, for example a new `rke2_version`, applies to new instances only.
+A changed cloud-init or size goes to the scale set model, and the provider features block in the module
+README keeps the instances as they are. Roll them one at a time:
+
+1. Apply, so that the scale set model has the change.
+2. Drain the node: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
+3. Run `az vmss deallocate`, `az vmss update-instances`, `az vmss reimage`, then `az vmss start`, each with
+   `--resource-group rg-<name>-nodes --name vmss-<name>-<pool> --instance-ids <id>`. The deallocate is
+   required when the model moves the pool to the NVMe disk controller, for example from a v5 to a v6 size.
+4. Wait until the node is Ready. Repeat for the next instance.
+
+To replace a pool instead, for example to rename it:
 
 1. Add a second pool with the same settings under a new key, for example `general2`.
 2. Apply. Wait until its nodes are Ready.

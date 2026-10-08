@@ -121,8 +121,20 @@ FIPS-enabled nodes; apply the same judgement here.
   autoscaler on the server nodes with the server identity: `useManagedIdentityExtension = true`,
   `userAssignedIdentityID = server_identity_client_id` and `vmType = vmss`. Karpenter does not apply: its
   Azure provider supports AKS only.
-- A changed cloud-init, for example a new `rke2_version`, applies to new instances only. To roll a pool,
-  follow the docs section "Roll an agent pool", or reimage the instances as in "Reimage an agent node".
+- A changed cloud-init, for example a new `rke2_version`, goes to the scale set model. With the azurerm
+  defaults the provider then upgrades and reimages every running instance of the pool, one at a time and
+  without a drain. Set the provider features block below to keep that step manual, then roll the pool as in
+  the docs section "Roll an agent pool".
+  ```hcl
+  provider "azurerm" {
+    features {
+      virtual_machine_scale_set {
+        roll_instances_when_required = false
+        reimage_on_manual_upgrade    = false
+      }
+    }
+  }
+  ```
 - v6 sizes, such as `Standard_D4as_v6`, boot only with the NVMe disk controller. A pool created with a v6
   size gets NVMe from Azure. To move an existing pool from an older size, set both on the model in one
   call, then roll the pool. The provider cannot set the controller on a scale set:
