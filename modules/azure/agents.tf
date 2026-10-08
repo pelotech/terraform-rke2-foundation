@@ -27,14 +27,19 @@ locals {
     }
   }
 
-  # cluster-autoscaler discovers pools by these tags and scales between min and max.
+  # cluster-autoscaler discovers pools by these tags and scales between min and max. A pool at zero has no node
+  # to read, so it takes the labels and taints from the node template tags: a slash in a key becomes an underscore.
   agent_pool_autoscaler_tags = {
-    for pool, cfg in local.agent_pools : pool => cfg.min_count == null ? {} : {
-      "cluster-autoscaler-enabled" = "true"
-      "cluster-autoscaler-name"    = var.name
-      min                          = tostring(cfg.min_count)
-      max                          = tostring(cfg.max_count)
-    }
+    for pool, cfg in local.agent_pools : pool => cfg.min_count == null ? {} : merge(
+      {
+        "cluster-autoscaler-enabled" = "true"
+        "cluster-autoscaler-name"    = var.name
+        min                          = tostring(cfg.min_count)
+        max                          = tostring(cfg.max_count)
+      },
+      { for k, v in cfg.labels : "k8s.io_cluster-autoscaler_node-template_label_${replace(replace(k, "_", "~2"), "/", "_")}" => v },
+      { for _, t in cfg.taints : "k8s.io_cluster-autoscaler_node-template_taint_${replace(replace(t.key, "_", "~2"), "/", "_")}" => "${t.value}:${t.effect}" },
+    )
   }
 }
 

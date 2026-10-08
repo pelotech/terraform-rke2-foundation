@@ -280,3 +280,32 @@ run "etcd_disk_off_keeps_etcd_on_the_root_disk" {
     error_message = "etcd_disk.enabled = false creates no disk"
   }
 }
+
+run "pool_labels_and_taints_tag_the_scale_set_for_a_scale_from_zero" {
+  command = plan
+  variables {
+    agent_pools = {
+      general = { vm_size = "Standard_D4s_v5" }
+      labs = {
+        vm_size    = "Standard_E4ds_v4"
+        node_count = 0
+        min_count  = 0
+        max_count  = 2
+        labels     = { "pelo.tech/usage" = "labs", "tier_a" = "x" }
+        taints     = { tenant = { key = "pelo.tech/tenant", value = "uki", effect = "NoSchedule" } }
+      }
+    }
+  }
+  assert {
+    condition     = azurerm_linux_virtual_machine_scale_set.agent["labs"].instances == 0 && azurerm_linux_virtual_machine_scale_set.agent["labs"].tags["min"] == "0"
+    error_message = "a pool may start empty"
+  }
+  assert {
+    condition     = azurerm_linux_virtual_machine_scale_set.agent["labs"].tags["k8s.io_cluster-autoscaler_node-template_label_pelo.tech_usage"] == "labs" && azurerm_linux_virtual_machine_scale_set.agent["labs"].tags["k8s.io_cluster-autoscaler_node-template_label_tier~2a"] == "x" && azurerm_linux_virtual_machine_scale_set.agent["labs"].tags["k8s.io_cluster-autoscaler_node-template_taint_pelo.tech_tenant"] == "uki:NoSchedule"
+    error_message = "the scale set tells the autoscaler the labels and taints of a node it has not created yet"
+  }
+  assert {
+    condition     = !anytrue([for k in keys(azurerm_linux_virtual_machine_scale_set.agent["general"].tags) : startswith(k, "k8s.io_cluster-autoscaler")])
+    error_message = "a pool without bounds carries no autoscaler tags"
+  }
+}
