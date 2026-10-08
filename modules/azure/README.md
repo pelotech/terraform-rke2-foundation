@@ -115,7 +115,9 @@ FIPS-enabled nodes; apply the same judgement here.
 
 - One scale set per `agent_pools` entry. `node_count` is the initial size and Terraform never changes
   the size of an existing pool.
-- Set `min_count` and `max_count` to tag the pool for cluster-autoscaler. The GitOps layer runs the
+- Set `min_count` and `max_count` to tag the pool for cluster-autoscaler, `min_count = 0` included: the scale
+  set carries the pool's labels and taints as node template tags, so the autoscaler knows what a node it has not
+  created yet offers. The GitOps layer runs the
   autoscaler on the server nodes with the server identity: `useManagedIdentityExtension = true`,
   `userAssignedIdentityID = server_identity_client_id` and `vmType = vmss`. Karpenter does not apply: its
   Azure provider supports AKS only.
