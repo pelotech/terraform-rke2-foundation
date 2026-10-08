@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.1.0...v0.1.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **azure:** treat a null Entra username prefix as none ([#18](https://github.com/pelotech/terraform-rke2-foundation/issues/18)) ([db3af42](https://github.com/pelotech/terraform-rke2-foundation/commit/db3af42bb8c30aee12c99e91c8c31e8076cba60a))
+
 ## 0.1.0 (2026-10-08)
 
 
