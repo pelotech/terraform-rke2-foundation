@@ -34,7 +34,7 @@ provider "helm" {
 }
 
 module "cni" {
-  source = "github.com/pelotech/terraform-helm-cni-bootstrap?ref=v1.1.0"
+  source = "github.com/pelotech/terraform-helm-cni-bootstrap?ref=v1.1.1"
 
   create                  = var.cni != "canal"
   cloud                   = module.stack.cloud
