@@ -103,8 +103,11 @@ resource "azurerm_linux_virtual_machine_scale_set" "agent" {
   boot_diagnostics {}
 
   lifecycle {
-    # cluster-autoscaler owns the size once the pool exists; see the README section "Agent pools".
-    ignore_changes = [instances]
+    # cluster-autoscaler owns the size, and cloud-provider-azure owns the load balancer pool membership.
+    ignore_changes = [
+      instances,
+      network_interface[0].ip_configuration[0].load_balancer_backend_address_pool_ids,
+    ]
   }
 
   depends_on = [
