@@ -53,20 +53,22 @@ sequenceDiagram
     participant K8S as Cluster
     OP->>TF: terraform apply
     TF->>CLOUD: Write the instance template
-    OP->>K8S: kubectl drain NAME-POOL-N
+    OP->>K8S: kubectl drain NAME-POOL-N, then delete the node
     OP->>CLOUD: Replace instance N from the template
-    CLOUD->>K8S: The node joins again under its name
+    CLOUD->>K8S: The node registers again under its name
     OP->>K8S: kubectl get nodes, wait for Ready
 ```
 
 1. Apply, so that the template carries the change.
-2. Drain the node: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
+2. Drain the node, then delete it: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data` and
+   `kubectl delete node <node>`. A reimaged instance keeps its Node object otherwise, with stale labels such
+   as the instance type.
 3. Replace the instance from the template. The cloud module README, section "Agent pools", gives the
    commands for each kind of change.
 4. Wait until the node is Ready. Repeat with the next instance.
 
 The instance keeps its name. The bootstrap derives the node password from that name, so the server accepts
-the node again.
+the node again and registers it fresh.
 
 To replace a pool instead, for example to rename it:
 
