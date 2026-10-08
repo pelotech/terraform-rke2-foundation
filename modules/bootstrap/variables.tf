@@ -241,7 +241,7 @@ variable "selinux_container_dirs" {
 variable "etcd_disk_device" {
   type        = string
   default     = null
-  description = "Block device for the etcd directory of a server, for example /dev/disk/azure/scsi1/lun0. bootstrap.sh waits for it, formats it with XFS when it carries no filesystem, and mounts it on the server db directory before RKE2 starts. null keeps etcd on the root disk."
+  description = "Block device for the etcd directory of a server, for example /dev/disk/azure/data/by-lun/0. bootstrap.sh waits for it, formats it with XFS when it carries no filesystem, and mounts it on the server db directory before RKE2 starts. null keeps etcd on the root disk."
 }
 
 variable "put_snapshot_script" {

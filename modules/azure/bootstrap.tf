@@ -57,7 +57,7 @@ module "bootstrap" {
   certificate_renewal    = var.certificate_renewal
   disable_firewalld      = var.disable_firewalld
   selinux_container_dirs = local.cni_profile.selinux_container_dirs
-  etcd_disk_device       = var.servers.etcd_disk.enabled ? "/dev/disk/azure/scsi1/lun${local.etcd_disk_lun}" : null
+  etcd_disk_device       = var.servers.etcd_disk.enabled ? "/dev/disk/azure/data/by-lun/${local.etcd_disk_lun}" : null
   put_snapshot_script    = local.put_snapshot_script
   server_labels          = var.servers.labels
   server_taints          = local.server_taints
