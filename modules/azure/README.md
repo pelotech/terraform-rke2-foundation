@@ -20,12 +20,7 @@ The helm provider and the cni-bootstrap module use its outputs. See "Install the
 - Outbound internet from the node subnet for `https://get.rke2.io`, the RKE2 release and the
   cloud-provider-azure chart, or `install_script_url` pointed at a mirror.
 - `kubectl` on the host that applies cni-bootstrap.
-- A marketplace image accepted in your subscription. The default is one pinned build of RHEL 10.2, so that
-  every node runs the same image; Azure Linux is not on the RKE2 support matrix. Cloud-init stops firewalld
-  on the node unless `disable_firewalld = false`.
-- RHEL 10 ships the iptables kernel modules in `kernel-modules-extra`, which the Azure Marketplace image does
-  not include. Cloud-init installs the build for the running kernel from the Red Hat Update Infrastructure before
-  RKE2 starts. A custom image must carry that package, or the node must reach a repository that has it.
+- A marketplace image accepted in your subscription. See "Node image".
 
 ## Quick start
 
@@ -113,17 +108,8 @@ FIPS-enabled nodes; apply the same judgement here.
 - The bootstrap fetches the CA set and the tokens from the Key Vault with the server identity. It writes
   them where RKE2 reads them. It installs the pinned release and starts the service. Role assignments can
   take minutes to propagate, so the fetch retries for fifteen minutes.
-- The admin kubeconfig is in the `kubeconfig` output. The `ssh-private-key` secret in the vault opens an
-  SSH session as `admin_username` when you provide no key.
-
-### Replace a server
-
-Terraform ignores a changed cloud-init on server nodes, so a changed setting never replaces all three at once.
-
-1. Run `kubectl delete node <name>-server-<i>`. RKE2 then removes the etcd member.
-2. Run `terraform apply -replace='module.stack.azurerm_linux_virtual_machine.server[<i>]'`.
-3. Wait until the new node is Ready.
-4. Repeat for the next server node.
+- Terraform ignores a changed cloud-init on server nodes, so a changed setting never replaces all three at
+  once. To replace one, follow the docs section "Replace a server node".
 
 ## Agent pools
 
@@ -134,11 +120,24 @@ Terraform ignores a changed cloud-init on server nodes, so a changed setting nev
   `userAssignedIdentityID = server_identity_client_id` and `vmType = vmss`. Karpenter does not apply: its
   Azure provider supports AKS only.
 - A changed cloud-init, for example a new `rke2_version`, applies to new instances only. To roll a pool,
-  follow the docs section "Roll an agent pool".
+  follow the docs section "Roll an agent pool", or reimage the instances as in "Reimage an agent node".
 - For kube-ovn, `cni_node_pool` adds the one-node `cni` pool. Set `enabled = false`, then `true`, to
   recycle it, and raise cni-bootstrap `bootstrap_generation` in the same apply.
   Size that node for ovn-central and kube-ovn-controller together: cni-bootstrap's defaults request about
   2 vCPUs and 3 GB on it, so keep the servers' size or larger.
+
+## Node image
+
+- `image` is one marketplace image for every node. The default is one pinned build of RHEL 10.2, so that every
+  node runs the same image. To move to a new build, set `image.version`, then replace the servers and roll the
+  pools. Azure Linux is not on the RKE2 support matrix.
+- Cloud-init stops firewalld on the node unless `disable_firewalld = false`.
+- On RHEL 10, cloud-init installs `kernel-modules-extra` for the running kernel from the Red Hat Update
+  Infrastructure before RKE2 starts. The Azure Marketplace image does not include the iptables modules that
+  kube-proxy and kube-ovn need. A custom image must include that package, or the node must have access to a
+  repository that has it.
+- With SELinux on, the bootstrap labels the host directories that the kube-ovn pods write. The kube-ovn profile
+  supplies the list. [docs/BOOTSTRAP.md](../../docs/BOOTSTRAP.md) has the details.
 
 ## Networking
 
@@ -157,7 +156,10 @@ Terraform ignores a changed cloud-init on server nodes, so a changed setting nev
 
 - With `entra_oidc` on, people and pipelines sign in through Entra ID with kubelogin, from the
   `kubeconfig_entra` output, which holds no secret. The admin client certificate in the `kubeconfig` output
-  is the break-glass path. Without `entra_oidc`, the certificate is the only credential.
+  is the break-glass path. Without `entra_oidc`, the certificate is the only credential. The docs section
+  "Get access" has the steps.
+- For SSH from the VNet, read the secret `ssh-private-key` from the Key Vault if you did not supply a key. The
+  user is `admin_username`.
 - By default, the API server accepts connections from the internet. To accept only some addresses, set
   `cluster_endpoint_authorized_ip_ranges`. For a private cluster, set
   `cluster_endpoint_public_access = false`.
@@ -194,10 +196,9 @@ DNS grants work as on AKS: list each zone in `dns_zone_ids`, or leave it empty a
 
 ## Upgrades
 
-`rke2_version` pins the release each node installs. Changing it affects new nodes only. Upgrade a running
-cluster with Rancher's system-upgrade-controller from the GitOps layer, or with the replace procedure
-above for servers and a pool roll for agents. The order, the etcd snapshot step and what a chart or image
-change needs are in [docs/OPERATIONS.md](../../docs/OPERATIONS.md).
+`rke2_version` pins the release each node installs. A change applies to new nodes only. The docs section
+"Upgrade RKE2" in [docs/OPERATIONS.md](../../docs/OPERATIONS.md) has the order, the etcd snapshot step and what
+a chart or image change needs.
 
 ## Hardening
 
@@ -332,7 +333,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_extra_server_config"></a> [extra\_server\_config](#input\_extra\_server\_config) | RKE2 server config keys merged last into every server's config.yaml. They override the module's keys. | `any` | `{}` | no |
 | <a name="input_image"></a> [image](#input\_image) | Marketplace image for every node. Default: RHEL 10.2, generation 2, pinned to one build so every node runs the same image; bump the version on purpose, then replace the servers and roll the pools. Set plan for an image that needs purchase terms. | <pre>object({<br/>    publisher = optional(string, "RedHat")<br/>    offer     = optional(string, "RHEL")<br/>    sku       = optional(string, "10_2-gen2")<br/>    version   = optional(string, "10.2.2026080415")<br/>    plan = optional(object({<br/>      name      = string<br/>      product   = string<br/>      publisher = string<br/>    }))<br/>  })</pre> | `{}` | no |
 | <a name="input_ingress_controller"></a> [ingress\_controller](#input\_ingress\_controller) | Packaged ingress controller: none, traefik or ingress-nginx. The GitOps layer provides the ingress, as on AKS, so the default is none. | `string` | `"none"` | no |
-| <a name="input_key_vault"></a> [key\_vault](#input\_key\_vault) | Key Vault holding the join tokens, the CA set and the generated SSH key. Put the principal that applies the module in admin\_object\_ids: it writes the secrets. After a destroy, Azure reserves the vault name for 90 days; set name to use a new one. | <pre>object({<br/>    name             = optional(string)<br/>    network_access   = optional(string, "Public")<br/>    admin_object_ids = optional(list(string), [])<br/>  })</pre> | `{}` | no |
+| <a name="input_key_vault"></a> [key\_vault](#input\_key\_vault) | Key Vault holding the join tokens, the CA set and the generated SSH key. Put the principal that applies the module in admin\_object\_ids: it writes the secrets. After a destroy, Azure keeps the vault soft-deleted for 90 days, and the next apply recovers it with its secrets. | <pre>object({<br/>    name             = optional(string)<br/>    network_access   = optional(string, "Public")<br/>    admin_object_ids = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_kube_apiserver_args"></a> [kube\_apiserver\_args](#input\_kube\_apiserver\_args) | Extra kube-apiserver-arg entries, as flag=value strings, after the ones the module sets. | `list(string)` | `[]` | no |
 | <a name="input_kube_controller_manager_args"></a> [kube\_controller\_manager\_args](#input\_kube\_controller\_manager\_args) | Extra kube-controller-manager-arg entries, as flag=value strings. | `list(string)` | `[]` | no |
 | <a name="input_kube_exec_login_mode"></a> [kube\_exec\_login\_mode](#input\_kube\_exec\_login\_mode) | kubelogin --login mode in kube\_exec, used with entra\_oidc. azurecli reuses your az session; use spn, msi or workloadidentity in CI. | `string` | `"azurecli"` | no |

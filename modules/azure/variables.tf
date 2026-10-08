@@ -395,7 +395,7 @@ variable "key_vault" {
   })
   default     = {}
   nullable    = false
-  description = "Key Vault holding the join tokens, the CA set and the generated SSH key. Put the principal that applies the module in admin_object_ids: it writes the secrets. After a destroy, Azure reserves the vault name for 90 days; set name to use a new one."
+  description = "Key Vault holding the join tokens, the CA set and the generated SSH key. Put the principal that applies the module in admin_object_ids: it writes the secrets. After a destroy, Azure keeps the vault soft-deleted for 90 days, and the next apply recovers it with its secrets."
 
   validation {
     condition     = contains(["Public", "Private"], var.key_vault.network_access)
