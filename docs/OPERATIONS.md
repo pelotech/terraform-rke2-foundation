@@ -41,17 +41,32 @@ server is replaced with it, and the snapshots on that disk go with it.
 
 ## Roll an agent pool
 
-A changed cloud-init or size goes to the pool's instance template; running instances keep what they booted
-with until they are replaced. Each level has one job:
+A changed cloud-init or size goes to the pool's instance template. Running instances keep what they booted
+with until you replace them. Replace one instance at a time.
 
-| Level      | Tool        | Step                                                                               |
-| ---------- | ----------- | ---------------------------------------------------------------------------------- |
-| Terraform  | `tofu apply`| Writes the change to the instance template. Running instances are not touched.    |
-| Kubernetes | `kubectl`   | `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data` before the roll. |
-| Cloud      | cloud CLI   | Replaces one instance from the template; see the cloud module README, "Agent pools". |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OP as Operator
+    participant TF as Terraform
+    participant CLOUD as Cloud
+    participant K8S as Cluster
+    OP->>TF: terraform apply
+    TF->>CLOUD: Write the instance template
+    OP->>K8S: kubectl drain NAME-POOL-N
+    OP->>CLOUD: Replace instance N from the template
+    CLOUD->>K8S: The node joins again under its name
+    OP->>K8S: kubectl get nodes, wait for Ready
+```
 
-Roll one instance at a time and wait until its node is Ready before the next. The instance keeps its name,
-the bootstrap derives the node password from that name, and the server accepts the node again.
+1. Apply, so that the template carries the change.
+2. Drain the node: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`.
+3. Replace the instance from the template. The cloud module README, section "Agent pools", gives the
+   commands for each kind of change.
+4. Wait until the node is Ready. Repeat with the next instance.
+
+The instance keeps its name. The bootstrap derives the node password from that name, so the server accepts
+the node again.
 
 To replace a pool instead, for example to rename it:
 
