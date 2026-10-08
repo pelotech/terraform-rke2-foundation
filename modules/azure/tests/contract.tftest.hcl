@@ -81,8 +81,8 @@ run "every_contract_output_is_populated" {
     error_message = "the API certificate covers the internal address and the public FQDN"
   }
   assert {
-    condition     = output.oidc_issuer_url == "https://acmeplatformdevoidc.z1.web.core.usgovcloudapi.net/" && output.external_dns_client_id != null && output.cert_manager_client_id != null
-    error_message = "issuer and the GitOps layer's client ids are populated by default"
+    condition     = output.oidc_issuer_url == "https://acmeplatformdevoidc.z1.web.core.usgovcloudapi.net/" && output.oidc_storage_account_id == azurerm_storage_account.oidc[0].id && output.external_dns_client_id != null && output.cert_manager_client_id != null
+    error_message = "issuer, its storage account id and the GitOps layer's client ids are populated by default"
   }
   assert {
     condition     = output.key_vault_name == "kv-platformdev" && output.key_vault_id != null && output.server_identity_client_id != null && output.agent_identity_client_id != null

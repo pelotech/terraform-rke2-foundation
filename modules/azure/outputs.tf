@@ -267,6 +267,11 @@ output "oidc_issuer_url" {
   value       = local.oidc_issuer_url
 }
 
+output "oidc_storage_account_id" {
+  description = "Resource ID of the storage account that serves the discovery document and JWKS, null when workload identity is off. The scope for extra grants, such as a plan identity that reads the static website."
+  value       = one(azurerm_storage_account.oidc[*].id)
+}
+
 output "external_dns_client_id" {
   description = "Client ID of the external-dns workload identity, null when disabled."
   value       = try(azurerm_user_assigned_identity.workload["external_dns"].client_id, null)
