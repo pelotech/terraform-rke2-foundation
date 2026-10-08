@@ -19,7 +19,7 @@ No providers.
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_cni"></a> [cni](#module\_cni) | github.com/pelotech/terraform-helm-cni-bootstrap | 65df8664c1bf78d4043d7df711cb7a4c03f04181 |
+| <a name="module_cni"></a> [cni](#module\_cni) | github.com/pelotech/terraform-helm-cni-bootstrap | v1.1.0 |
 
 ## Resources
 

@@ -16,8 +16,8 @@ node and, for kube-ovn, one more node; `cni/` installs the CNI through cni-boots
 `/var/tmp/rke2-snapshot-uploads`. Everything under `stage/` is generated and ignored by git, the kubeconfig
 included.
 
-Until cni-bootstrap's `main` carries the RKE2 inputs, add a gitignored `cni/cni_override.tf` that points the
-`cni` module `source` at a local clone.
+To test a cni-bootstrap change, add a gitignored `cni/cni_override.tf` that points the `cni` module `source`
+at a local clone.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
