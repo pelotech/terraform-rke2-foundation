@@ -51,6 +51,10 @@ run "roles" {
     condition     = strcontains(output.server_user_data.member, "kernel-modules-extra-$(uname -r)") && strcontains(output.agent_user_data["default"], "kernel-modules-extra-$(uname -r)")
     error_message = "every node installs the iptables modules of its running kernel before RKE2 starts; RHEL 10 ships them apart"
   }
+  assert {
+    condition     = strcontains(output.server_user_data.member, "lvextend -l +100%FREE") && strcontains(output.agent_user_data["default"], "lvextend -l +100%FREE")
+    error_message = "every node grows /var into the free space of its volume group"
+  }
 }
 
 run "agent_user_data_follows_pools" {

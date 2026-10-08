@@ -93,6 +93,13 @@ if command -v dnf >/dev/null 2>&1 && ! modprobe -n nft_compat >/dev/null 2>&1; t
   dnf install -y "kernel-modules-extra-$(uname -r)"
 fi
 
+# RHEL images give /var a small logical volume and leave the rest of the disk to the volume group; images and logs live there.
+var_lv=$(findmnt -n -o SOURCE /var 2>/dev/null || true)
+if [ -n "$var_lv" ] && [ "${var_lv#/dev/mapper/}" != "$var_lv" ] && lvextend -l +100%FREE "$var_lv" >/dev/null 2>&1; then
+  xfs_growfs /var >/dev/null 2>&1 || resize2fs "$var_lv" >/dev/null 2>&1
+  log "grew /var to $(findmnt -n -o SIZE /var)"
+fi
+
 log "installing RKE2 $RKE2_VERSION as $ROLE"
 curl -sfL "$INSTALL_URL" | INSTALL_RKE2_VERSION="$RKE2_VERSION" INSTALL_RKE2_TYPE="$ROLE" sh -
 
