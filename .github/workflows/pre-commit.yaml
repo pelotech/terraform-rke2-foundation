@@ -61,6 +61,9 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: RKE2 install behavior
+        run: python3 modules/bootstrap/tests/test_install.py
+
       # Runs on every event and is the required status check. On the docs commit
       # (run #2) this re-runs and lands a green check on the head SHA. Untrusted
       # hooks run here, BEFORE any write-capable token exists.

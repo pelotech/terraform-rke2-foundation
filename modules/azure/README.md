@@ -134,7 +134,9 @@ FIPS-enabled nodes; apply the same judgement here.
 
 ## Node image
 
-- `image` is one marketplace image for every node. The default is one pinned build of RHEL 10.2, so that every
+- `image` is one image for every node. Set `image.id` to a managed image ID or an exact Azure Compute
+  Gallery version ID to use a prebuilt image; Marketplace reference fields are omitted in that mode.
+  Gallery definitions and `latest` are rejected. With no ID, `image` selects one Marketplace image. The default is one pinned build of RHEL 10.2, so that every
   node runs the same image. To move to a new build, set `image.version`, then replace the servers and roll the
   pools. Azure Linux is not on the RKE2 support matrix.
 - The bootstrap finds the etcd disk through the `/dev/disk/azure/data/by-lun` link that azure-vm-utils creates on
@@ -146,6 +148,24 @@ FIPS-enabled nodes; apply the same judgement here.
   repository that has it.
 - With SELinux on, the bootstrap labels the host directories that the kube-ovn pods write. The kube-ovn profile
   supplies the list. [docs/BOOTSTRAP.md](../../docs/BOOTSTRAP.md) has the details.
+
+For a prebuilt offline image:
+
+```hcl
+image = {
+  id = "/subscriptions/<subscription>/resourceGroups/<group>/providers/Microsoft.Compute/galleries/<gallery>/images/<image>/versions/1.37.1"
+}
+install_artifact_path    = "/opt/rke2/artifacts"
+cloud_provider_chart_url = "https://%%{KUBERNETES_API}%/static/charts/cloud-provider-azure-1.36.0.tgz"
+```
+
+Bake the pinned installer, release tarball and checksum file into the artifact directory. Include the
+matching core image archive, SELinux policy and OS/kernel dependencies. Bake the pinned cloud-provider
+chart under `/var/lib/rancher/rke2/server/static/charts` on every server, and preload the matching
+controller and node-manager images. Its URL replaces the upstream repository and does not increase
+cloud-init size with an embedded chart archive. Other CNI and workload images still require approved
+delivery. The installer checks the installed binary against `rke2_version` before starting a service.
+Image building and gallery publication belong to the caller; this module consumes their output.
 
 ## Networking
 
@@ -323,6 +343,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_blob_csi"></a> [blob\_csi](#input\_blob\_csi) | Blob storage for the blob CSI driver. Default: off. The module creates the storage account, the agent identity grant and the private containers. The README section "Storage" explains each field. | <pre>object({<br/>    enabled                   = optional(bool, false)<br/>    create_storage_account    = optional(bool, true)<br/>    storage_account_name      = optional(string)<br/>    containers                = optional(list(string), [])<br/>    network_access            = optional(string, "NodeSubnet")<br/>    extra_subnet_ids          = optional(list(string), [])<br/>    shared_access_key_enabled = optional(bool, false)<br/>  })</pre> | `{}` | no |
 | <a name="input_certificate_renewal"></a> [certificate\_renewal](#input\_certificate\_renewal) | Renews node certificates on the nodes themselves with a daily timer; see the bootstrap module. Off, the operator renews by restart or replacement. | `bool` | `true` | no |
 | <a name="input_cis_profile"></a> [cis\_profile](#input\_cis\_profile) | Runs RKE2 with profile cis: the CIS host prerequisites, restricted Pod Security Admission and default network policies. | `bool` | `false` | no |
+| <a name="input_cloud_provider_chart_url"></a> [cloud\_provider\_chart\_url](#input\_cloud\_provider\_chart\_url) | Complete HTTPS URL of the pinned cloud-provider-azure chart archive. Overrides the upstream chart repository. For a baked chart under /var/lib/rancher/rke2/server/static/charts, use https://%{KUBERNETES_API}%/static/charts/<filename>.tgz. The image must carry the corresponding controller/node-manager images. | `string` | `null` | no |
 | <a name="input_cloud_provider_chart_version"></a> [cloud\_provider\_chart\_version](#input\_cloud\_provider\_chart\_version) | cloud-provider-azure chart version. Keep its MAJOR.MINOR equal to the Kubernetes minor in rke2\_version, or set cloud\_provider\_image\_tag when the chart lags Kubernetes. | `string` | `"1.36.0"` | no |
 | <a name="input_cloud_provider_image_tag"></a> [cloud\_provider\_image\_tag](#input\_cloud\_provider\_image\_tag) | Image tag of the cloud-provider-azure controller and node manager, whose minor must equal the Kubernetes minor. null keeps the chart's own tag. Set it when the chart lags Kubernetes. | `string` | `"v1.37.0"` | no |
 | <a name="input_cluster_endpoint_authorized_ip_ranges"></a> [cluster\_endpoint\_authorized\_ip\_ranges](#input\_cluster\_endpoint\_authorized\_ip\_ranges) | CIDRs allowed to reach the public API server. Empty allows all. | `list(string)` | `[]` | no |
@@ -339,8 +360,9 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_existing_vnet"></a> [existing\_vnet](#input\_existing\_vnet) | Use an existing VNet and node subnet. The module then creates no network and no NAT Gateway, so the subnet must provide egress. api\_private\_ip is the static address of the API load balancer; null lets Azure pick one. | <pre>object({<br/>    vnet_id        = string<br/>    node_subnet_id = string<br/>    api_private_ip = optional(string)<br/>  })</pre> | `null` | no |
 | <a name="input_extra_agent_config"></a> [extra\_agent\_config](#input\_extra\_agent\_config) | RKE2 agent config keys merged last into every agent's config.yaml. They override the module's keys. | `any` | `{}` | no |
 | <a name="input_extra_server_config"></a> [extra\_server\_config](#input\_extra\_server\_config) | RKE2 server config keys merged last into every server's config.yaml. They override the module's keys. | `any` | `{}` | no |
-| <a name="input_image"></a> [image](#input\_image) | Marketplace image for every node. Default: RHEL 10.2, generation 2, pinned to one build so every node runs the same image; bump the version on purpose, then replace the servers and roll the pools. Set plan for an image that needs purchase terms. | <pre>object({<br/>    publisher = optional(string, "RedHat")<br/>    offer     = optional(string, "RHEL")<br/>    sku       = optional(string, "10_2-gen2")<br/>    version   = optional(string, "10.2.2026080415")<br/>    plan = optional(object({<br/>      name      = string<br/>      product   = string<br/>      publisher = string<br/>    }))<br/>  })</pre> | `{}` | no |
+| <a name="input_image"></a> [image](#input\_image) | Image for every node. Set id to a managed image or an exact Azure Compute Gallery version; otherwise use the pinned RHEL 10.2 Marketplace reference. Set plan when the source image requires purchase terms. Image changes require deliberate server replacement and pool rolling. | <pre>object({<br/>    id        = optional(string)<br/>    publisher = optional(string, "RedHat")<br/>    offer     = optional(string, "RHEL")<br/>    sku       = optional(string, "10_2-gen2")<br/>    version   = optional(string, "10.2.2026080415")<br/>    plan = optional(object({<br/>      name      = string<br/>      product   = string<br/>      publisher = string<br/>    }))<br/>  })</pre> | `{}` | no |
 | <a name="input_ingress_controller"></a> [ingress\_controller](#input\_ingress\_controller) | Packaged ingress controller: none, traefik or ingress-nginx. The GitOps layer provides the ingress, as on AKS, so the default is none. | `string` | `"none"` | no |
+| <a name="input_install_artifact_path"></a> [install\_artifact\_path](#input\_install\_artifact\_path) | Absolute path baked into each node image containing install.sh, the pinned RKE2 binary tarball and release checksum file. null keeps the online installer. Offline images must include OS/SELinux/kernel dependencies and all required image archives. | `string` | `null` | no |
 | <a name="input_key_vault"></a> [key\_vault](#input\_key\_vault) | Key Vault holding the join tokens, the CA set and the generated SSH key. Put the principal that applies the module in admin\_object\_ids: it writes the secrets. After a destroy, Azure keeps the vault soft-deleted for 90 days, and the next apply recovers it with its secrets. | <pre>object({<br/>    name             = optional(string)<br/>    network_access   = optional(string, "Public")<br/>    admin_object_ids = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_kube_apiserver_args"></a> [kube\_apiserver\_args](#input\_kube\_apiserver\_args) | Extra kube-apiserver-arg entries, as flag=value strings, after the ones the module sets. | `list(string)` | `[]` | no |
 | <a name="input_kube_controller_manager_args"></a> [kube\_controller\_manager\_args](#input\_kube\_controller\_manager\_args) | Extra kube-controller-manager-arg entries, as flag=value strings. | `list(string)` | `[]` | no |

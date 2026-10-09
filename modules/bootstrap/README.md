@@ -21,6 +21,14 @@ answers. Then it enables the renewal timer and, on a server node, the snapshot t
 `server:` and `token:` are never in `config.yaml`; `bootstrap.sh` writes them as drop-ins under
 `/etc/rancher/rke2/config.yaml.d/`.
 
+For an offline node image, set `install_artifact_path` to the directory containing the pinned
+`install.sh`, binary tarball and release checksum file. Install the SELinux policy, OS dependencies
+and running kernel's extra modules during image build, and preload the matching RKE2 image archives
+under `/var/lib/rancher/rke2/agent/images`. The local installer creates the appropriate server or agent
+units at boot. Missing local assets or kernel modules fail without a download fallback; a version
+mismatch fails before starting RKE2. Leave cluster tokens, node identity, CA private keys and registry
+credentials out of the image. Bootstrap still fetches cluster secrets through the cloud identity.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -79,6 +87,7 @@ No modules.
 | <a name="input_extra_agent_config"></a> [extra\_agent\_config](#input\_extra\_agent\_config) | RKE2 agent config keys merged last into every agent's config.yaml. They override the keys the module sets. | `any` | `{}` | no |
 | <a name="input_extra_server_config"></a> [extra\_server\_config](#input\_extra\_server\_config) | RKE2 server config keys merged last into config.yaml. They override the keys the module sets. | `any` | `{}` | no |
 | <a name="input_ingress_controller"></a> [ingress\_controller](#input\_ingress\_controller) | Packaged ingress controller: none, traefik or ingress-nginx. The GitOps layer provides the ingress, as on AKS, so the default is none. | `string` | `"none"` | no |
+| <a name="input_install_artifact_path"></a> [install\_artifact\_path](#input\_install\_artifact\_path) | Absolute path baked into each node image containing install.sh, the pinned RKE2 binary tarball and release checksum file. null keeps the online installer. Offline images must include OS/SELinux/kernel dependencies and all required image archives. | `string` | `null` | no |
 | <a name="input_install_script_url"></a> [install\_script\_url](#input\_install\_script\_url) | URL of the RKE2 install script. Point it at a mirror in restricted networks. | `string` | `"https://get.rke2.io"` | no |
 | <a name="input_kube_apiserver_args"></a> [kube\_apiserver\_args](#input\_kube\_apiserver\_args) | kube-apiserver-arg entries, as flag=value strings. | `list(string)` | `[]` | no |
 | <a name="input_kube_controller_manager_args"></a> [kube\_controller\_manager\_args](#input\_kube\_controller\_manager\_args) | kube-controller-manager-arg entries, as flag=value strings. | `list(string)` | `[]` | no |

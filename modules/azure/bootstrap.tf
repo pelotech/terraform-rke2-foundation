@@ -41,6 +41,7 @@ module "bootstrap" {
 
   name                   = var.name
   rke2_version           = var.rke2_version
+  install_artifact_path  = var.install_artifact_path
   registration_address   = local.api_private_ip_resolved
   api_server_url         = local.cluster_endpoint
   tls_sans               = azurerm_public_ip.api[*].fqdn

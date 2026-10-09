@@ -250,6 +250,17 @@ variable "put_snapshot_script" {
   description = "Shell every server sources as root. It must define put_snapshot PATH FILE, which stores FILE at PATH outside the node. With it, an hourly timer uploads each new etcd snapshot once. Empty installs no timer."
 }
 
+variable "install_artifact_path" {
+  type        = string
+  default     = null
+  description = "Absolute path baked into each node image containing install.sh, the pinned RKE2 binary tarball and release checksum file. null keeps the online installer. Offline images must include OS/SELinux/kernel dependencies and all required image archives."
+
+  validation {
+    condition     = var.install_artifact_path == null ? true : can(regex("^(/[A-Za-z0-9_.-]+)+$", var.install_artifact_path))
+    error_message = "install_artifact_path must be an absolute directory path using letters, digits, underscores, dots and hyphens."
+  }
+}
+
 variable "install_script_url" {
   type        = string
   default     = "https://get.rke2.io"
