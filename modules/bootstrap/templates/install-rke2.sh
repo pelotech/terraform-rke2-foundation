@@ -29,5 +29,11 @@ fi
 
 # The upstream offline installer checks local checksums but does not tie the tarball
 # to INSTALL_RKE2_VERSION. Reject a stale image before any node can join the cluster.
-actual_version=$(rke2 --version | awk 'NR == 1 { print $3 }')
+# Tar installs can use /opt/rke2 when /usr/local is read-only or a mount point.
+# Inspect the installed service, so PATH cannot select a missing or stale binary.
+service_exec=$(systemctl show --property=ExecStart --value "rke2-$ROLE")
+rke2_binary=${service_exec#*path=}
+rke2_binary=${rke2_binary%% *}
+[[ "$rke2_binary" = /* && -x "$rke2_binary" ]] || fail "cannot locate installed rke2-$ROLE service binary"
+actual_version=$("$rke2_binary" --version | awk 'NR == 1 { print $3 }')
 [ "$actual_version" = "$RKE2_VERSION" ] || fail "installed RKE2 version $actual_version does not match $RKE2_VERSION"

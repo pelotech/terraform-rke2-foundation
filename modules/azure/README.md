@@ -157,6 +157,9 @@ image = {
 }
 install_artifact_path    = "/opt/rke2/artifacts"
 cloud_provider_chart_url = "https://%%{KUBERNETES_API}%/static/charts/cloud-provider-azure-1.36.0.tgz"
+# RHEL: tar installation does not supply the RPM's RKE2_SELINUX=true environment.
+extra_server_config = { selinux = true }
+extra_agent_config  = { selinux = true }
 ```
 
 Bake the pinned installer, release tarball and checksum file into the artifact directory. Include the

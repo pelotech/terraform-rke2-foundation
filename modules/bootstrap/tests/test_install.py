@@ -23,6 +23,7 @@ class InstallTests(unittest.TestCase):
         self.command("dnf", 'echo "dnf $*" >> "$CALLS"')
         self.command("curl", 'echo "curl $*" >> "$CALLS"; cat "$ONLINE_INSTALLER"')
         self.command("rke2", 'echo "rke2 version ${ACTUAL_VERSION:-v1.37.1+rke2r1} (fixture)"')
+        self.command("systemctl", 'printf "{ path=%s ; argv[]=rke2 %s ; }\\n" "${SERVICE_BINARY:-$(dirname "$0")/rke2}" "$ROLE"')
         self.installer = self.artifacts / "install.sh"
         self.installer.write_text(
             '#!/bin/sh\n'
@@ -69,6 +70,15 @@ class InstallTests(unittest.TestCase):
         result, _ = self.run_install(ACTUAL_VERSION="v1.36.5+rke2r1")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("version", result.stderr.lower())
+
+    def test_checks_service_binary_outside_path_even_with_stale_path_binary(self):
+        installed = self.root / "opt-rke2-bin"
+        installed.mkdir()
+        binary = installed / "rke2"
+        binary.write_text(f'#!/bin/sh\necho "rke2 version {VERSION} (fixture)"\n')
+        binary.chmod(0o755)
+        result, _ = self.run_install(SERVICE_BINARY=str(binary), ACTUAL_VERSION="v1.36.5+rke2r1")
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_online_install_preserves_mirror_and_running_kernel_package(self):
         result, calls = self.run_install(offline=False, MISSING_KERNEL="1")

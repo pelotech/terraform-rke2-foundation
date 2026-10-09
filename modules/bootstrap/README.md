@@ -29,6 +29,10 @@ units at boot. Missing local assets or kernel modules fail without a download fa
 mismatch fails before starting RKE2. Leave cluster tokens, node identity, CA private keys and registry
 credentials out of the image. Bootstrap still fetches cluster secrets through the cloud identity.
 
+On RHEL, also set `selinux = true` in both `extra_server_config` and `extra_agent_config`.
+Installing the SELinux policy alone is insufficient: tar installation does not provide the RPM's
+`RKE2_SELINUX=true` environment. Other distributions retain caller control of that setting.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
