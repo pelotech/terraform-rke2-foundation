@@ -42,10 +42,13 @@ locals {
       apiVersion = "helm.cattle.io/v1"
       kind       = "HelmChart"
       metadata   = { name = "cloud-provider-azure", namespace = "kube-system" }
-      spec = {
-        chart           = "cloud-provider-azure"
-        repo            = "https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo"
-        version         = var.cloud_provider_chart_version
+      spec = merge(var.cloud_provider_chart_url == null ? {
+        chart   = "cloud-provider-azure"
+        repo    = "https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo"
+        version = var.cloud_provider_chart_version
+        } : {
+        chart = var.cloud_provider_chart_url
+        }, {
         targetNamespace = "kube-system"
         bootstrap       = true
         valuesContent = yamlencode({
@@ -65,7 +68,7 @@ locals {
             tolerations = [{ operator = "Exists" }]
           }, local.cloud_provider_image)
         })
-      }
+      })
     })
   })
 }

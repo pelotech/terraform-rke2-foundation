@@ -54,6 +54,11 @@ chmod 0600 "$CONF_DIR/10-token.yaml"
 install -d -m 0700 /etc/rancher/node
 printf '%s:%s' "$(hostname)" "$(cat "$SECRET_DIR/agent-token")" | sha256sum | cut -c1-64 > /etc/rancher/node/password
 chmod 0600 /etc/rancher/node/password
+
+# Registry mirrors and credentials, fetched as a secret so they never travel in cloud-init.
+if [ -f "$SECRET_DIR/registries.yaml" ]; then
+  install -m 0600 "$SECRET_DIR/registries.yaml" /etc/rancher/rke2/registries.yaml
+fi
 rm -rf "$SECRET_DIR"
 
 if [ "$CIS_PROFILE" = true ] && ! id etcd >/dev/null 2>&1; then
@@ -86,13 +91,6 @@ if [ -n "$SELINUX_CONTAINER_DIRS" ] && selinuxenabled 2>/dev/null; then
   done
 fi
 
-# Two reasons. RHEL 10 moved the iptables modules that kube-proxy and the CNI need into kernel-modules-extra, which
-# the Azure Marketplace image lacks. And the RKE2 RPM requires that package but dnf resolves it to the newest kernel,
-# which runs only after a reboot; the running kernel's build loads now and pulls no second kernel.
-if command -v dnf >/dev/null 2>&1 && ! modprobe -n nft_compat >/dev/null 2>&1; then
-  dnf install -y "kernel-modules-extra-$(uname -r)"
-fi
-
 # RHEL images give /var a small logical volume and leave the rest of the disk to the volume group; images and logs live there.
 var_lv=$(findmnt -n -o SOURCE /var 2>/dev/null || true)
 if [ -n "$var_lv" ] && [ "${var_lv#/dev/mapper/}" != "$var_lv" ] && lvextend -l +100%FREE "$var_lv" >/dev/null 2>&1; then
@@ -104,7 +102,8 @@ if [ -n "$var_lv" ] && [ "${var_lv#/dev/mapper/}" != "$var_lv" ] && lvextend -l 
 fi
 
 log "installing RKE2 $RKE2_VERSION as $ROLE"
-curl -sfL "$INSTALL_URL" | INSTALL_RKE2_VERSION="$RKE2_VERSION" INSTALL_RKE2_TYPE="$ROLE" sh -
+ROLE="$ROLE" RKE2_VERSION="$RKE2_VERSION" INSTALL_URL="$INSTALL_URL" \
+  INSTALL_ARTIFACT_PATH="${INSTALL_ARTIFACT_PATH:-}" bash "$LIB_DIR/install-rke2.sh"
 
 if [ "$CIS_PROFILE" = true ]; then
   for f in /usr/local/share/rke2/rke2-cis-sysctl.conf /usr/share/rke2/rke2-cis-sysctl.conf; do

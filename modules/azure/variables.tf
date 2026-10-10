@@ -84,8 +84,44 @@ variable "cloud_provider_image_tag" {
   }
 }
 
+variable "install_artifact_path" {
+  type        = string
+  default     = null
+  description = "Absolute path baked into each node image containing install.sh, the pinned RKE2 binary tarball and release checksum file. null keeps the online installer. Offline images must include OS/SELinux/kernel dependencies and all required image archives."
+
+  validation {
+    condition     = var.install_artifact_path == null ? true : can(regex("^(/[A-Za-z0-9_.-]+)+$", var.install_artifact_path))
+    error_message = "install_artifact_path must be an absolute directory path using letters, digits, underscores, dots and hyphens."
+  }
+}
+
+variable "cloud_provider_chart_url" {
+  type        = string
+  default     = null
+  description = "Complete HTTPS URL of the pinned cloud-provider-azure chart archive. Overrides the upstream chart repository. For a baked chart under /var/lib/rancher/rke2/server/static/charts, use https://%%{KUBERNETES_API}%/static/charts/<filename>.tgz. The image must carry the corresponding controller/node-manager images."
+
+  validation {
+    condition     = var.cloud_provider_chart_url == null ? true : can(regex("^https://[^[:space:]]+$", var.cloud_provider_chart_url))
+    error_message = "cloud_provider_chart_url must be a complete HTTPS chart archive URL."
+  }
+}
+
+variable "registries_config" {
+  type        = string
+  default     = null
+  sensitive   = true
+  description = "Content of /etc/rancher/rke2/registries.yaml for every node: mirrors, rewrites and registry credentials. It travels as a node secret, never in cloud-init. null writes no file, so nodes pull from the upstream registries."
+}
+
+variable "registry_ca_pem" {
+  type        = string
+  default     = null
+  description = "PEM chain of a private registry, written to /etc/rancher/rke2/registry-ca.pem on every node before RKE2 starts. Reference that path as ca_file in registries_config."
+}
+
 variable "image" {
   type = object({
+    id        = optional(string)
     publisher = optional(string, "RedHat")
     offer     = optional(string, "RHEL")
     sku       = optional(string, "10_2-gen2")
@@ -98,7 +134,12 @@ variable "image" {
   })
   default     = {}
   nullable    = false
-  description = "Marketplace image for every node. Default: RHEL 10.2, generation 2, pinned to one build so every node runs the same image; bump the version on purpose, then replace the servers and roll the pools. Set plan for an image that needs purchase terms."
+  description = "Image for every node. Set id to a managed image or an exact Azure Compute Gallery version; otherwise use the pinned RHEL 10.2 Marketplace reference. Set plan when the source image requires purchase terms. Image changes require deliberate server replacement and pool rolling."
+
+  validation {
+    condition     = var.image.id == null ? true : can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft.Compute/(images/[^/]+|galleries/[^/]+/images/[^/]+/versions/[0-9]+\\.[0-9]+\\.[0-9]+)$", var.image.id))
+    error_message = "image.id must be a managed image ID or an exact gallery image version ID; gallery definitions and latest are not accepted."
+  }
 }
 
 variable "admin_username" {

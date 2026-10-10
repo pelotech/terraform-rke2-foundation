@@ -103,11 +103,15 @@ resource "azurerm_linux_virtual_machine" "server" {
     disk_size_gb         = var.servers.os_disk_size_gb
   }
 
-  source_image_reference {
-    publisher = var.image.publisher
-    offer     = var.image.offer
-    sku       = var.image.sku
-    version   = var.image.version
+  source_image_id = var.image.id
+  dynamic "source_image_reference" {
+    for_each = var.image.id == null ? [var.image] : []
+    content {
+      publisher = source_image_reference.value.publisher
+      offer     = source_image_reference.value.offer
+      sku       = source_image_reference.value.sku
+      version   = source_image_reference.value.version
+    }
   }
 
   dynamic "plan" {

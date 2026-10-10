@@ -250,6 +250,30 @@ variable "put_snapshot_script" {
   description = "Shell every server sources as root. It must define put_snapshot PATH FILE, which stores FILE at PATH outside the node. With it, an hourly timer uploads each new etcd snapshot once. Empty installs no timer."
 }
 
+variable "install_artifact_path" {
+  type        = string
+  default     = null
+  description = "Absolute path baked into each node image containing install.sh, the pinned RKE2 binary tarball and release checksum file. null keeps the online installer. Offline images must include OS/SELinux/kernel dependencies and all required image archives."
+
+  validation {
+    condition     = var.install_artifact_path == null ? true : can(regex("^(/[A-Za-z0-9_.-]+)+$", var.install_artifact_path))
+    error_message = "install_artifact_path must be an absolute directory path using letters, digits, underscores, dots and hyphens."
+  }
+}
+
+variable "registries_config" {
+  type        = string
+  default     = null
+  sensitive   = true
+  description = "Content of /etc/rancher/rke2/registries.yaml for every node: mirrors, rewrites and registry credentials. It travels as a node secret, never in cloud-init. null writes no file, so nodes pull from the upstream registries."
+}
+
+variable "registry_ca_pem" {
+  type        = string
+  default     = null
+  description = "PEM chain of a private registry, written to /etc/rancher/rke2/registry-ca.pem on every node before RKE2 starts. Reference that path as ca_file in registries_config."
+}
+
 variable "install_script_url" {
   type        = string
   default     = "https://get.rke2.io"
