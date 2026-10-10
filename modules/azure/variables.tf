@@ -177,7 +177,7 @@ variable "servers" {
     }), {})
   })
   nullable    = false
-  description = "Control plane VMs. count must be odd. Servers carry the CriticalAddonsOnly taint unless schedulable is true. zones round-robin across the servers; empty means no zone. etcd_disk is a Premium SSD v2 data disk per server for the etcd directory, with no host cache, replaced together with its VM; iops and mbps start at the 3000 and 125 the SKU includes."
+  description = "Control plane VMs. count must be odd. Servers carry the CriticalAddonsOnly and control-plane taints unless schedulable is true. zones round-robin across the servers; empty means no zone. etcd_disk is a Premium SSD v2 data disk per server for the etcd directory, with no host cache, replaced together with its VM; iops and mbps start at the 3000 and 125 the SKU includes."
 
   validation {
     condition     = var.servers.count >= 1 && var.servers.count % 2 == 1
@@ -222,7 +222,7 @@ variable "agent_pools" {
 
   validation {
     condition     = length(var.agent_pools) > 0
-    error_message = "agent_pools needs at least one pool: servers carry the CriticalAddonsOnly taint, so workloads need agents."
+    error_message = "agent_pools needs at least one pool: servers carry the CriticalAddonsOnly and control-plane taints, so workloads need agents."
   }
   validation {
     condition     = alltrue([for k in keys(var.agent_pools) : can(regex("^[a-z][a-z0-9]{0,11}$", k)) && k != "cni"])

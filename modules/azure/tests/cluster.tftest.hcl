@@ -198,7 +198,7 @@ run "cilium_contract_and_config" {
     error_message = "with cilium the poll waits for the three servers"
   }
   assert {
-    condition     = output.server_config_resolved["cni"] == "none" && output.server_config_resolved["disable-kube-proxy"] == true && tolist(output.server_config_resolved["node-taint"]) == tolist(["CriticalAddonsOnly=true:NoSchedule"])
+    condition     = output.server_config_resolved["cni"] == "none" && output.server_config_resolved["disable-kube-proxy"] == true && tolist(output.server_config_resolved["node-taint"]) == tolist(["CriticalAddonsOnly=true:NoSchedule", "node-role.kubernetes.io/control-plane=true:NoSchedule"])
     error_message = "cilium replaces kube-proxy; servers carry the system taint"
   }
   assert {
