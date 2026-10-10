@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.3.0...v0.4.0) (2026-10-10)
+
+
+### Features
+
+* taint servers with the control-plane role as well ([#32](https://github.com/pelotech/terraform-rke2-foundation/issues/32)) ([9f3f931](https://github.com/pelotech/terraform-rke2-foundation/commit/9f3f93190b1201de734a082fe1f64f2c499ba531))
+
 ## [0.3.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.2.1...v0.3.0) (2026-10-10)
 
 
