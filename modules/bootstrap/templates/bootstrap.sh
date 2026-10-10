@@ -54,6 +54,11 @@ chmod 0600 "$CONF_DIR/10-token.yaml"
 install -d -m 0700 /etc/rancher/node
 printf '%s:%s' "$(hostname)" "$(cat "$SECRET_DIR/agent-token")" | sha256sum | cut -c1-64 > /etc/rancher/node/password
 chmod 0600 /etc/rancher/node/password
+
+# Registry mirrors and credentials, fetched as a secret so they never travel in cloud-init.
+if [ -f "$SECRET_DIR/registries.yaml" ]; then
+  install -m 0600 "$SECRET_DIR/registries.yaml" /etc/rancher/rke2/registries.yaml
+fi
 rm -rf "$SECRET_DIR"
 
 if [ "$CIS_PROFILE" = true ] && ! id etcd >/dev/null 2>&1; then

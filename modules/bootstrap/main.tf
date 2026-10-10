@@ -15,6 +15,11 @@ locals {
     { "service.key" = tls_private_key.service_account.private_key_pem },
   )
 
+  # Only the presence of the registries config decides which secrets exist, so the key set stays plain.
+  registries_secret = nonsensitive(var.registries_config != null) ? {
+    "rke2-registries" = { path = "registries.yaml", content = var.registries_config }
+  } : {}
+
   # Every server secret once; the path and content maps the outputs expose are projections of it.
   server_secrets = merge(
     { for file, content in local.tls_files : "rke2-tls-${replace(replace(file, "/", "-"), ".", "-")}" => { path = "tls/${file}", content = content } },
@@ -22,9 +27,10 @@ locals {
       "rke2-token"       = { path = "token", content = random_password.token.result }
       "rke2-agent-token" = { path = "agent-token", content = random_password.agent_token.result }
     },
+    local.registries_secret,
   )
   server_secret_paths = { for name, secret in local.server_secrets : name => secret.path }
-  agent_secret_paths  = { "rke2-agent-token" = "agent-token" }
+  agent_secret_paths  = merge({ "rke2-agent-token" = "agent-token" }, { for name, secret in local.registries_secret : name => secret.path })
   secret_contents     = { for name, secret in local.server_secrets : name => secret.content }
 }
 

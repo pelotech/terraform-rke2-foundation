@@ -170,6 +170,10 @@ cloud-init size with an embedded chart archive. Other CNI and workload images st
 delivery. The installer checks the installed binary against `rke2_version` before starting a service.
 Image building and gallery publication belong to the caller; this module consumes their output.
 
+For a private registry, set `registries_config` to the content of `registries.yaml` and `registry_ca_pem`
+to the registry CA chain. The config reaches every node as a Key Vault secret that both node identities
+may read; the CA travels in cloud-init to `/etc/rancher/rke2/registry-ca.pem`. Neither is baked into the image.
+
 ## Networking
 
 | Setup                      | Inputs                                                          | Egress              |
@@ -376,6 +380,8 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_pki"></a> [pki](#input\_pki) | Validity of the CA set and of the admin client certificate, which Terraform renews admin\_early\_renewal\_hours before it expires. | <pre>object({<br/>    ca_validity_hours         = optional(number, 87600)<br/>    admin_validity_hours      = optional(number, 8760)<br/>    admin_early_renewal_hours = optional(number, 720)<br/>  })</pre> | `{}` | no |
 | <a name="input_pod_cidr"></a> [pod\_cidr](#input\_pod\_cidr) | Pod CIDR, the RKE2 cluster-cidr. Pass the cluster\_pod\_cidr output to cni-bootstrap so the CNI uses the same range. | `string` | `"10.244.0.0/16"` | no |
 | <a name="input_private_endpoints"></a> [private\_endpoints](#input\_private\_endpoints) | Private endpoints in the node subnet, one for each target resource. You select the key names. Example subresource\_names: ["blob"], ["vault"], ["registry"]. | <pre>map(object({<br/>    resource_id          = string<br/>    subresource_names    = list(string)<br/>    private_dns_zone_ids = list(string)<br/>  }))</pre> | `{}` | no |
+| <a name="input_registries_config"></a> [registries\_config](#input\_registries\_config) | Content of /etc/rancher/rke2/registries.yaml for every node: mirrors, rewrites and registry credentials. It travels as a node secret, never in cloud-init. null writes no file, so nodes pull from the upstream registries. | `string` | `null` | no |
+| <a name="input_registry_ca_pem"></a> [registry\_ca\_pem](#input\_registry\_ca\_pem) | PEM chain of a private registry, written to /etc/rancher/rke2/registry-ca.pem on every node before RKE2 starts. Reference that path as ca\_file in registries\_config. | `string` | `null` | no |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Resource group for the network, Key Vault, identities and load balancers. null generates rg-<name>. | `string` | `null` | no |
 | <a name="input_rke2_version"></a> [rke2\_version](#input\_rke2\_version) | RKE2 release every node installs, v1.36.0+rke2r1 or newer. Changing it affects new nodes only; see the README section "Upgrades". | `string` | `"v1.37.1+rke2r1"` | no |
 | <a name="input_secrets_encryption"></a> [secrets\_encryption](#input\_secrets\_encryption) | Encrypts Secrets at rest in etcd with RKE2's secrets-encryption. | `bool` | `true` | no |

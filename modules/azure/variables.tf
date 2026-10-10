@@ -106,6 +106,19 @@ variable "cloud_provider_chart_url" {
   }
 }
 
+variable "registries_config" {
+  type        = string
+  default     = null
+  sensitive   = true
+  description = "Content of /etc/rancher/rke2/registries.yaml for every node: mirrors, rewrites and registry credentials. It travels as a node secret, never in cloud-init. null writes no file, so nodes pull from the upstream registries."
+}
+
+variable "registry_ca_pem" {
+  type        = string
+  default     = null
+  description = "PEM chain of a private registry, written to /etc/rancher/rke2/registry-ca.pem on every node before RKE2 starts. Reference that path as ca_file in registries_config."
+}
+
 variable "image" {
   type = object({
     id        = optional(string)

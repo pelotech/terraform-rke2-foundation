@@ -29,6 +29,11 @@ units at boot. Missing local assets or kernel modules fail without a download fa
 mismatch fails before starting RKE2. Leave cluster tokens, node identity, CA private keys and registry
 credentials out of the image. Bootstrap still fetches cluster secrets through the cloud identity.
 
+For a private registry, set `registries_config` to the content of `registries.yaml`, mirrors, rewrites and
+credentials included. It travels as a node secret, fetched like the tokens, and lands at
+`/etc/rancher/rke2/registries.yaml` before RKE2 starts. Set `registry_ca_pem` to the registry CA chain; it is
+written to `/etc/rancher/rke2/registry-ca.pem`, the path to reference as `ca_file`.
+
 On RHEL, also set `selinux = true` in both `extra_server_config` and `extra_agent_config`.
 Installing the SELinux policy alone is insufficient: tar installation does not provide the RPM's
 `RKE2_SELINUX=true` environment. Other distributions retain caller control of that setting.
@@ -99,6 +104,8 @@ No modules.
 | <a name="input_pki"></a> [pki](#input\_pki) | Validity of the CA set and of the admin client certificate, which Terraform renews admin\_early\_renewal\_hours before it expires. | <pre>object({<br/>    ca_validity_hours         = optional(number, 87600)<br/>    admin_validity_hours      = optional(number, 8760)<br/>    admin_early_renewal_hours = optional(number, 720)<br/>  })</pre> | `{}` | no |
 | <a name="input_post_bootstrap_script"></a> [post\_bootstrap\_script](#input\_post\_bootstrap\_script) | Shell every server runs once the API answers /readyz, with KUBECONFIG set and kubectl on PATH. Empty runs nothing. | `string` | `""` | no |
 | <a name="input_put_snapshot_script"></a> [put\_snapshot\_script](#input\_put\_snapshot\_script) | Shell every server sources as root. It must define put\_snapshot PATH FILE, which stores FILE at PATH outside the node. With it, an hourly timer uploads each new etcd snapshot once. Empty installs no timer. | `string` | `""` | no |
+| <a name="input_registries_config"></a> [registries\_config](#input\_registries\_config) | Content of /etc/rancher/rke2/registries.yaml for every node: mirrors, rewrites and registry credentials. It travels as a node secret, never in cloud-init. null writes no file, so nodes pull from the upstream registries. | `string` | `null` | no |
+| <a name="input_registry_ca_pem"></a> [registry\_ca\_pem](#input\_registry\_ca\_pem) | PEM chain of a private registry, written to /etc/rancher/rke2/registry-ca.pem on every node before RKE2 starts. Reference that path as ca\_file in registries\_config. | `string` | `null` | no |
 | <a name="input_secrets_encryption"></a> [secrets\_encryption](#input\_secrets\_encryption) | Sets secrets-encryption, RKE2's encryption of Secrets at rest in etcd. | `bool` | `true` | no |
 | <a name="input_selinux_container_dirs"></a> [selinux\_container\_dirs](#input\_selinux\_container\_dirs) | Host directories that pods write while they run as container\_t, such as the kube-ovn state and log directories. On a host with SELinux on, the bootstrap labels them container\_file\_t with a file context rule, and adds a tmpfiles entry for the ones under /run, which is empty at boot. | `list(string)` | `[]` | no |
 | <a name="input_server_labels"></a> [server\_labels](#input\_server\_labels) | Node labels for every server. | `map(string)` | `{}` | no |

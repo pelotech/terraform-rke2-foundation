@@ -65,6 +65,7 @@ locals {
           { path = "${local.lib_dir}/install-rke2.sh", permissions = "0700", content = file("${path.module}/templates/install-rke2.sh") },
           { path = "${local.lib_dir}/fetch-secrets.sh", permissions = "0700", content = var.fetch_secrets_scripts[spec.role] },
         ],
+        var.registry_ca_pem == null ? [] : [{ path = "/etc/rancher/rke2/registry-ca.pem", permissions = "0644", content = var.registry_ca_pem }],
         local.timer_files[spec.role],
         spec.role == "server" ? concat(
           var.post_bootstrap_script == "" ? [] : [{ path = "${local.lib_dir}/post-bootstrap.sh", permissions = "0700", content = var.post_bootstrap_script }],
