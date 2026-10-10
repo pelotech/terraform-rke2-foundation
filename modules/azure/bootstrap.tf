@@ -1,5 +1,6 @@
 locals {
-  server_taints = var.servers.schedulable ? [] : ["CriticalAddonsOnly=true:NoSchedule"]
+  # Both taints: many add-ons tolerate CriticalAddonsOnly by design, few tolerate the control-plane role.
+  server_taints = var.servers.schedulable ? [] : ["CriticalAddonsOnly=true:NoSchedule", "node-role.kubernetes.io/control-plane=true:NoSchedule"]
 
   workload_identity_apiserver_args = local.oidc_issuer_enabled ? [
     "service-account-issuer=${local.oidc_issuer_url}",

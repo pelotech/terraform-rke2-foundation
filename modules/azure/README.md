@@ -101,8 +101,9 @@ FIPS-enabled nodes; apply the same judgement here.
 
 ## Servers and bootstrap
 
-- Servers carry `CriticalAddonsOnly=true:NoSchedule`, like the AKS system pool, unless
-  `servers.schedulable` is true. RKE2 labels them `node-role.kubernetes.io/control-plane=true`.
+- Servers carry `CriticalAddonsOnly=true:NoSchedule` and `node-role.kubernetes.io/control-plane=true:NoSchedule`
+  unless `servers.schedulable` is true, so only the control plane, the CNI and add-ons that tolerate both run
+  there. RKE2 labels them `node-role.kubernetes.io/control-plane=true`.
 - Server node 0 waits `servers.bootstrap_wait_seconds` for the registration address. If nothing answers,
   it starts a new cluster. Otherwise it joins, which is what a replaced server node 0 does.
 - The bootstrap fetches the CA set and the tokens from the Key Vault with the server identity. It writes
