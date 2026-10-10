@@ -54,7 +54,7 @@ identities get Contributor on the second group only.
   never replaces all three at once. See [Operations](OPERATIONS.md) to replace one.
 - Each server keeps etcd on a Premium SSD v2 data disk of its own, with no host cache. The disk is replaced
   together with its VM. An hourly timer uploads each new etcd snapshot to a private storage account.
-- Server nodes carry the taint `CriticalAddonsOnly=true:NoSchedule`, the same taint as the AKS system pool.
+- Server nodes carry the taints `CriticalAddonsOnly=true:NoSchedule` and `node-role.kubernetes.io/control-plane=true:NoSchedule`.
 - The internal load balancer is the registration address. The public load balancer, when enabled, fronts port
   6443 only and takes the authorized IP ranges.
 
