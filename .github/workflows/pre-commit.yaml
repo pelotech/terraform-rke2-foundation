@@ -61,6 +61,9 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Azure resource group dependencies
+        run: python3 modules/azure/tests/test_resource_group_dependencies.py
+
       - name: RKE2 install behavior
         run: python3 modules/bootstrap/tests/test_install.py
 

@@ -1,9 +1,12 @@
 data "azurerm_client_config" "current" {}
 
 locals {
-  resource_group_name_wanted = coalesce(var.resource_group_name, "rg-${var.name}")
-  # Read through the resource so everything that uses the name waits for the group to exist.
-  resource_group_name = var.create_resource_group ? azurerm_resource_group.this[0].name : local.resource_group_name_wanted
+  resource_group_name_wanted      = coalesce(var.resource_group_name, "rg-${var.name}")
+  node_resource_group_name_wanted = coalesce(var.node_resource_group_name, "rg-${var.name}-nodes")
+  # A shared workload/node group is created by nodes; all consumers must wait for it.
+  resource_group_name = var.create_resource_group ? azurerm_resource_group.this[0].name : (
+    local.resource_group_name_wanted == local.node_resource_group_name_wanted ? azurerm_resource_group.nodes.name : local.resource_group_name_wanted
+  )
 
   # environment is the name cloud-provider-azure and kubelogin share.
   azure_clouds = {
@@ -33,9 +36,9 @@ resource "azurerm_resource_group" "this" {
   tags     = var.tags
 }
 
-# Nodes, scale sets and what the cloud provider and CSI driver create live apart, so identities get Contributor here only.
+# Nodes, scale sets and cloud-provider/CSI resources use this group; workloads can share it.
 resource "azurerm_resource_group" "nodes" {
-  name     = coalesce(var.node_resource_group_name, "rg-${var.name}-nodes")
+  name     = local.node_resource_group_name_wanted
   location = var.location
   tags     = var.tags
 }
