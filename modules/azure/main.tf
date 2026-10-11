@@ -3,9 +3,13 @@ data "azurerm_client_config" "current" {}
 locals {
   resource_group_name_wanted      = coalesce(var.resource_group_name, "rg-${var.name}")
   node_resource_group_name_wanted = coalesce(var.node_resource_group_name, "rg-${var.name}-nodes")
-  # A shared workload/node group is created by nodes; all consumers must wait for it.
-  resource_group_name = var.create_resource_group ? azurerm_resource_group.this[0].name : (
-    local.resource_group_name_wanted == local.node_resource_group_name_wanted ? azurerm_resource_group.nodes.name : local.resource_group_name_wanted
+  shared_resource_group           = local.resource_group_name_wanted == local.node_resource_group_name_wanted
+
+  # Prefer the created workload group, then the shared node group, then the existing group.
+  resource_group_name = coalesce(
+    one(azurerm_resource_group.this[*].name),
+    local.shared_resource_group ? azurerm_resource_group.nodes.name : null,
+    local.resource_group_name_wanted,
   )
 
   # environment is the name cloud-provider-azure and kubelogin share.
