@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.4.0...v0.4.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **azure:** order workloads after shared node resource group ([#34](https://github.com/pelotech/terraform-rke2-foundation/issues/34)) ([436c716](https://github.com/pelotech/terraform-rke2-foundation/commit/436c716c68856bb35652842b3ada1c32db900e0c))
+
 ## [0.4.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.3.0...v0.4.0) (2026-10-10)
 
 
