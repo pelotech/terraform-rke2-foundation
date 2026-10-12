@@ -58,3 +58,37 @@ run "public_access_opens_the_account" {
     error_message = "no storage service endpoint when the account is public"
   }
 }
+
+run "private_endpoint_preserves_keys_and_private_containers" {
+  command = plan
+  variables {
+    etcd_backup = null
+    blob_csi = {
+      storage_account_name      = "acmeplatformdevcsi"
+      containers                = ["backups"]
+      network_access            = "PrivateEndpoint"
+      private_dns_zone_ids      = ["/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/dns/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.usgovcloudapi.net"]
+      shared_access_key_enabled = true
+    }
+  }
+  assert {
+    condition     = azurerm_storage_account.blob_csi[0].public_network_access == "Disabled" && azurerm_storage_account.blob_csi[0].shared_access_key_enabled && !azurerm_storage_account.blob_csi[0].allow_nested_items_to_be_public && azurerm_storage_container.blob_csi["backups"].container_access_type == "private"
+    error_message = "Private networking preserves the configured authentication and forbids anonymous container access."
+  }
+  assert {
+    condition     = azurerm_storage_account_network_rules.blob_csi[0].default_action == "Deny" && length(azurerm_storage_account_network_rules.blob_csi[0].virtual_network_subnet_ids) == 0 && length(azurerm_subnet.nodes[0].service_endpoint) == 0
+    error_message = "PrivateEndpoint must not enable or require Microsoft.Storage service endpoints."
+  }
+  assert {
+    condition     = length(azurerm_private_endpoint.storage) == 1 && azurerm_private_endpoint.storage["blob-csi"].private_dns_zone_group[0].private_dns_zone_ids == var.blob_csi.private_dns_zone_ids
+    error_message = "One Blob endpoint integrates with the supplied DNS zone."
+  }
+}
+
+run "private_endpoint_requires_dns_zone" {
+  command = plan
+  variables {
+    blob_csi = { storage_account_name = "acmeplatformdevcsi", network_access = "PrivateEndpoint" }
+  }
+  expect_failures = [var.blob_csi]
+}

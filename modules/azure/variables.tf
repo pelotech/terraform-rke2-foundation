@@ -432,8 +432,19 @@ variable "etcd_backup" {
     storage_account_name = string
     retention_days       = optional(number, 30)
     replication_type     = optional(string, "LRS")
+    network_access       = optional(string, "NodeSubnet")
+    private_dns_zone_ids = optional(list(string), [])
   })
-  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage_account_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. Only the node subnet reaches the account; with network.existing, that subnet needs the Microsoft.Storage service endpoint."
+  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage_account_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. network_access is NodeSubnet (default, requires Microsoft.Storage on an existing subnet) or PrivateEndpoint (public networking disabled, Blob endpoint in the node subnet, integrated with private_dns_zone_ids)."
+
+  validation {
+    condition     = var.etcd_backup == null ? true : contains(["NodeSubnet", "PrivateEndpoint"], var.etcd_backup.network_access)
+    error_message = "etcd_backup.network_access must be NodeSubnet or PrivateEndpoint."
+  }
+  validation {
+    condition     = var.etcd_backup == null ? true : (var.etcd_backup.network_access == "PrivateEndpoint") == (length(var.etcd_backup.private_dns_zone_ids) > 0)
+    error_message = "etcd_backup.private_dns_zone_ids must be nonempty exactly when network_access is PrivateEndpoint."
+  }
 
   validation {
     condition     = var.etcd_backup == null ? true : var.etcd_backup.retention_days >= 1 && var.etcd_backup.retention_days <= 365
@@ -555,12 +566,18 @@ variable "blob_csi" {
     network_access            = optional(string, "NodeSubnet")
     extra_subnet_ids          = optional(list(string), [])
     shared_access_key_enabled = optional(bool, false)
+    private_dns_zone_ids      = optional(list(string), [])
   })
   description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. The README section \"Storage\" explains each field."
 
   validation {
-    condition     = var.blob_csi == null ? true : contains(["NodeSubnet", "Public"], var.blob_csi.network_access)
-    error_message = "blob_csi.network_access must be one of: NodeSubnet, Public."
+    condition     = var.blob_csi == null ? true : (var.blob_csi.network_access == "PrivateEndpoint") == (length(var.blob_csi.private_dns_zone_ids) > 0)
+    error_message = "blob_csi.private_dns_zone_ids must be nonempty exactly when network_access is PrivateEndpoint."
+  }
+
+  validation {
+    condition     = var.blob_csi == null ? true : contains(["NodeSubnet", "Public", "PrivateEndpoint"], var.blob_csi.network_access)
+    error_message = "blob_csi.network_access must be one of: NodeSubnet, Public, PrivateEndpoint."
   }
   validation {
     condition     = var.blob_csi == null ? true : can(regex("^[a-z0-9]{3,24}$", var.blob_csi.storage_account_name))

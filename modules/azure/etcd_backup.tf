@@ -1,6 +1,8 @@
 locals {
-  etcd_backup_enabled       = var.etcd_backup != null
-  etcd_backup_container_url = local.etcd_backup_enabled ? "${azurerm_storage_account.etcd_backup[0].primary_blob_endpoint}${azurerm_storage_container.etcd_backup[0].name}" : null
+  etcd_backup_enabled          = var.etcd_backup != null
+  etcd_backup_private_endpoint = try(var.etcd_backup.network_access == "PrivateEndpoint", false)
+  etcd_backup_node_subnet_only = local.etcd_backup_enabled && !local.etcd_backup_private_endpoint
+  etcd_backup_container_url    = local.etcd_backup_enabled ? "${azurerm_storage_account.etcd_backup[0].primary_blob_endpoint}${azurerm_storage_container.etcd_backup[0].name}" : null
 }
 
 # A private account of its own: the OIDC account is public by design and the blob CSI account belongs to workloads.
@@ -16,6 +18,7 @@ resource "azurerm_storage_account" "etcd_backup" {
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = false
+  public_network_access           = local.etcd_backup_private_endpoint ? "Disabled" : "Enabled"
   tags                            = var.tags
 
   blob_properties {
@@ -34,7 +37,7 @@ resource "azurerm_storage_account_network_rules" "etcd_backup" {
   storage_account_id         = azurerm_storage_account.etcd_backup[0].id
   default_action             = "Deny"
   bypass                     = ["AzureServices"]
-  virtual_network_subnet_ids = [local.node_subnet_id]
+  virtual_network_subnet_ids = local.etcd_backup_node_subnet_only ? [local.node_subnet_id] : []
 }
 
 resource "azurerm_storage_container" "etcd_backup" {

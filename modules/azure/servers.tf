@@ -134,6 +134,7 @@ resource "azurerm_linux_virtual_machine" "server" {
   # update that overlaps the VM delete.
   depends_on = [
     azurerm_role_assignment.server,
+    azurerm_private_endpoint.storage,
     azurerm_key_vault_secret.node,
     azurerm_subnet_nat_gateway_association.nodes,
     azurerm_lb_rule.api,

@@ -50,3 +50,36 @@ run "retention_in_range" {
   }
   expect_failures = [var.etcd_backup]
 }
+
+run "private_endpoint_needs_no_service_endpoint" {
+  command = plan
+  variables {
+    network = {
+      existing = {
+        vnet_id        = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/network/providers/Microsoft.Network/virtualNetworks/shared"
+        node_subnet_id = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/network/providers/Microsoft.Network/virtualNetworks/shared/subnets/team"
+      }
+    }
+    etcd_backup = {
+      storage_account_name = "acmeplatformdevetcd"
+      network_access       = "PrivateEndpoint"
+      private_dns_zone_ids = ["/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/dns/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.usgovcloudapi.net"]
+    }
+  }
+  assert {
+    condition     = azurerm_storage_account.etcd_backup[0].public_network_access == "Disabled" && length(azurerm_storage_account_network_rules.etcd_backup[0].virtual_network_subnet_ids) == 0
+    error_message = "PrivateEndpoint disables public networking without requiring a subnet service endpoint."
+  }
+  assert {
+    condition     = azurerm_private_endpoint.storage["etcd-backup"].subnet_id == var.network.existing.node_subnet_id && azurerm_private_endpoint.storage["etcd-backup"].resource_group_name == var.resource_group.name && azurerm_private_endpoint.storage["etcd-backup"].private_service_connection[0].subresource_names == tolist(["blob"]) && azurerm_private_endpoint.storage["etcd-backup"].private_dns_zone_group[0].private_dns_zone_ids == var.etcd_backup.private_dns_zone_ids
+    error_message = "The backup Blob endpoint belongs in the workload RG and existing node subnet, with the supplied DNS zone."
+  }
+}
+
+run "private_endpoint_requires_dns_zone" {
+  command = plan
+  variables {
+    etcd_backup = { storage_account_name = "acmeplatformdevetcd", network_access = "PrivateEndpoint" }
+  }
+  expect_failures = [var.etcd_backup]
+}

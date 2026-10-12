@@ -303,8 +303,18 @@ DNS grants work as on AKS: list each zone in the controller's `dns_zone_ids`, or
   CSI node plugin.
 - `blob_csi` creates the storage account named `blob_csi.storage_account_name`, a Storage Blob Data
   Contributor grant for the agent identity and one private container per name in `blob_csi.containers`, with
-  the same `network_access`, `extra_subnet_ids` and `shared_access_key_enabled` fields as the AKS foundation.
-  `null` creates nothing.
+  `network_access` selects `NodeSubnet` (the default, using Storage service endpoints), `Public`, or
+  `PrivateEndpoint`. `extra_subnet_ids` extends `NodeSubnet` access; `shared_access_key_enabled` controls
+  authentication independently of networking. `null` creates nothing.
+- For `etcd_backup` or `blob_csi`, set `network_access = "PrivateEndpoint"` and supply
+  `private_dns_zone_ids` to disable public networking and create a Blob private endpoint in the workload
+  resource group and node subnet. Reuse existing DNS zones and their network links or forwarding;
+  the module creates neither. No `Microsoft.Storage` service endpoint is needed in this mode.
+  The applying identity needs endpoint/subnet permissions and permission to attach the DNS zone group.
+  Confirm Blob names resolve to the endpoint IP from nodes and the runner before relying on storage.
+  Backup uploads retain managed-identity authentication; Blob CSI retains its configured key setting.
+  These endpoints do not publish the workload-identity issuer: Entra must reach its discovery/JWKS
+  documents over HTTPS independently.
 - Storage account names are global in Azure and yours to choose: `etcd_backup`, `blob_csi` and
   `workload_identity` each name their own account.
 
@@ -345,14 +355,14 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 5.0.0 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 5.8.0 |
 | <a name="requirement_tls"></a> [tls](#requirement\_tls) | >= 4.0.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 5.0.0 |
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 5.8.0 |
 | <a name="provider_tls"></a> [tls](#provider\_tls) | >= 4.0.0 |
 
 ## Modules
@@ -387,6 +397,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | [azurerm_network_security_group.nodes](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_group) | resource |
 | [azurerm_network_security_rule.api_server](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_rule) | resource |
 | [azurerm_private_endpoint.node_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
+| [azurerm_private_endpoint.storage](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
 | [azurerm_public_ip.api](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
 | [azurerm_public_ip.nat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
 | [azurerm_resource_group.nodes](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
@@ -422,11 +433,11 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_agent_pools"></a> [agent\_pools](#input\_agent\_pools) | Agent scale sets, keyed by pool name. node\_count is the initial size; set min\_count and max\_count to tag the pool for cluster-autoscaler, which then owns the size. The README section "Agent pools" explains the rest. | <pre>map(object({<br/>    vm_size         = string<br/>    node_count      = optional(number, 1)<br/>    min_count       = optional(number)<br/>    max_count       = optional(number)<br/>    zones           = optional(list(string), ["1", "2", "3"])<br/>    os_disk_size_gb = optional(number, 100)<br/>    os_disk_type    = optional(string, "Premium_LRS")<br/>    labels          = optional(map(string), {})<br/>    taints = optional(map(object({<br/>      key    = string<br/>      value  = string<br/>      effect = string<br/>    })), {})<br/>  }))</pre> | n/a | yes |
 | <a name="input_azure_cloud"></a> [azure\_cloud](#input\_azure\_cloud) | Azure cloud: public or usgovernment. It selects the cloud provider environment, the Key Vault audience and the kubelogin environment. Set it to the same cloud as your azurerm provider. | `string` | n/a | yes |
-| <a name="input_blob_csi"></a> [blob\_csi](#input\_blob\_csi) | Blob storage for the blob CSI driver: a storage account named storage\_account\_name, the agent identity grant and one private container per name in containers. null creates nothing. The README section "Storage" explains each field. | <pre>object({<br/>    storage_account_name      = string<br/>    containers                = optional(list(string), [])<br/>    network_access            = optional(string, "NodeSubnet")<br/>    extra_subnet_ids          = optional(list(string), [])<br/>    shared_access_key_enabled = optional(bool, false)<br/>  })</pre> | n/a | yes |
+| <a name="input_blob_csi"></a> [blob\_csi](#input\_blob\_csi) | Blob storage for the blob CSI driver: a storage account named storage\_account\_name, the agent identity grant and one private container per name in containers. null creates nothing. The README section "Storage" explains each field. | <pre>object({<br/>    storage_account_name      = string<br/>    containers                = optional(list(string), [])<br/>    network_access            = optional(string, "NodeSubnet")<br/>    extra_subnet_ids          = optional(list(string), [])<br/>    shared_access_key_enabled = optional(bool, false)<br/>    private_dns_zone_ids      = optional(list(string), [])<br/>  })</pre> | n/a | yes |
 | <a name="input_cluster_endpoint"></a> [cluster\_endpoint](#input\_cluster\_endpoint) | public adds a public load balancer in front of the API server, reachable only from authorized\_ip\_ranges, which is then required: 0.0.0.0/0 opens it to the internet, write it only when you mean it. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap. dns\_label names the public address, unique per region; null generates <name>-<hash>. | <pre>object({<br/>    public               = bool<br/>    authorized_ip_ranges = optional(list(string), [])<br/>    dns_label            = optional(string)<br/>  })</pre> | n/a | yes |
 | <a name="input_cni"></a> [cni](#input\_cni) | name is the CNI to run: cilium, kube-ovn or canal. cilium and kube-ovn set RKE2 cni none and cni-bootstrap installs the CNI; cilium also turns kube-proxy off. canal is the bundled, FIPS-rebuilt CNI. node\_pool is the dedicated pool kube-ovn's control plane runs on, the scale set named cni: required for kube-ovn, absent for the others. To recycle it, replace the scale set with terraform apply -replace. | <pre>object({<br/>    name = string<br/>    node_pool = optional(object({<br/>      vm_size         = string<br/>      zones           = optional(list(string), ["1", "2", "3"])<br/>      node_count      = optional(number, 1)<br/>      os_disk_size_gb = optional(number, 100)<br/>      os_disk_type    = optional(string, "Premium_LRS")<br/>    }))<br/>  })</pre> | n/a | yes |
 | <a name="input_entra_oidc"></a> [entra\_oidc](#input\_entra\_oidc) | Microsoft Entra ID as the API server's OIDC provider, for kubectl through kubelogin. null keeps the admin client certificate as the only credential. client\_id is an app registration you own, with token version 2 and group claims; issuer\_url defaults to the tenant's v2 endpoint in azure\_cloud. login\_mode is the kubelogin --login mode in kube\_exec: azurecli reuses your az session; spn, msi, workloadidentity or azurepipelines in CI. The username claim is oid, present in user and service principal tokens alike. Servers apply a ClusterRoleBinding to cluster-admin for admin\_group\_object\_ids and admin\_object\_ids, and read-only bindings for reader\_object\_ids, before the first node joins. The principal that applies the module must be in an admin list: it installs the CNI through kube\_exec. The README section "Access" lists what the app registration needs. | <pre>object({<br/>    client_id              = string<br/>    login_mode             = string<br/>    admin_group_object_ids = optional(list(string), [])<br/>    admin_object_ids       = optional(list(string), [])<br/>    reader_object_ids      = optional(list(string), [])<br/>    issuer_url             = optional(string)<br/>    username_claim         = optional(string, "oid")<br/>    groups_claim           = optional(string, "groups")<br/>    username_prefix        = optional(string)<br/>  })</pre> | n/a | yes |
-| <a name="input_etcd_backup"></a> [etcd\_backup](#input\_etcd\_backup) | Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage\_account\_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention\_days. Only the node subnet reaches the account; with network.existing, that subnet needs the Microsoft.Storage service endpoint. | <pre>object({<br/>    storage_account_name = string<br/>    retention_days       = optional(number, 30)<br/>    replication_type     = optional(string, "LRS")<br/>  })</pre> | n/a | yes |
+| <a name="input_etcd_backup"></a> [etcd\_backup](#input\_etcd\_backup) | Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage\_account\_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention\_days. network\_access is NodeSubnet (default, requires Microsoft.Storage on an existing subnet) or PrivateEndpoint (public networking disabled, Blob endpoint in the node subnet, integrated with private\_dns\_zone\_ids). | <pre>object({<br/>    storage_account_name = string<br/>    retention_days       = optional(number, 30)<br/>    replication_type     = optional(string, "LRS")<br/>    network_access       = optional(string, "NodeSubnet")<br/>    private_dns_zone_ids = optional(list(string), [])<br/>  })</pre> | n/a | yes |
 | <a name="input_key_vault"></a> [key\_vault](#input\_key\_vault) | Key Vault holding the join tokens, the CA set and the generated SSH key. admin\_object\_ids must include the principal that applies the module: it writes the secrets. After a destroy, Azure keeps the vault soft-deleted for 90 days, and the next apply recovers it with its secrets. | <pre>object({<br/>    admin_object_ids = list(string)<br/>    name             = optional(string)<br/>    network_access   = optional(string, "Public")<br/>  })</pre> | n/a | yes |
 | <a name="input_location"></a> [location](#input\_location) | Azure region for every resource, for example usgovvirginia. | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the cluster. It is the base of every generated resource name and of the node hostnames. | `string` | n/a | yes |

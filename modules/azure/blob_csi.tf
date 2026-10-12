@@ -1,5 +1,6 @@
 locals {
   create_blob_storage_account = var.blob_csi != null
+  blob_csi_private_endpoint   = try(var.blob_csi.network_access == "PrivateEndpoint", false)
   blob_csi_node_subnet_only   = local.create_blob_storage_account ? var.blob_csi.network_access == "NodeSubnet" : false
 }
 
@@ -15,6 +16,7 @@ resource "azurerm_storage_account" "blob_csi" {
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = var.blob_csi.shared_access_key_enabled
+  public_network_access           = local.blob_csi_private_endpoint ? "Disabled" : "Enabled"
   tags                            = var.tags
 }
 
@@ -22,7 +24,7 @@ resource "azurerm_storage_account" "blob_csi" {
 resource "azurerm_storage_account_network_rules" "blob_csi" {
   count                      = local.create_blob_storage_account ? 1 : 0
   storage_account_id         = azurerm_storage_account.blob_csi[0].id
-  default_action             = local.blob_csi_node_subnet_only ? "Deny" : "Allow"
+  default_action             = local.blob_csi_node_subnet_only || local.blob_csi_private_endpoint ? "Deny" : "Allow"
   bypass                     = ["AzureServices"]
   virtual_network_subnet_ids = local.blob_csi_node_subnet_only ? concat([local.node_subnet_id], var.blob_csi.extra_subnet_ids) : []
 }
