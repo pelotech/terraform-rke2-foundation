@@ -134,7 +134,7 @@ run "private_endpoints_land_in_the_node_subnet" {
     }
   }
   assert {
-    condition     = azurerm_private_endpoint.node_subnet["vault"].name == "pe-platformdev-vault" && azurerm_private_endpoint.node_subnet["vault"].private_service_connection[0].subresource_names[0] == "vault" && azurerm_private_endpoint.node_subnet["vault"].private_service_connection[0].is_manual_connection == false
-    error_message = "one private endpoint per key, named pe-<name>-<key>, with an automatic connection"
+    condition     = azurerm_private_endpoint.node_subnet["vault"].name == "pep-platformdev-vault" && azurerm_private_endpoint.node_subnet["vault"].private_service_connection[0].subresource_names[0] == "vault" && azurerm_private_endpoint.node_subnet["vault"].private_service_connection[0].is_manual_connection == false
+    error_message = "one private endpoint per key, named pep-<name>-<key> as the Cloud Adoption Framework abbreviates it, with an automatic connection"
   }
 }

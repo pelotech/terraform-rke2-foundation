@@ -30,7 +30,7 @@ resource "azurerm_subnet" "nodes" {
   default_outbound_access_enabled = false
 
   dynamic "service_endpoint" {
-    for_each = toset(concat(var.network.create.service_endpoints, local.blob_csi_node_subnet_only || local.etcd_backup_enabled ? ["Microsoft.Storage"] : []))
+    for_each = toset(concat(var.network.create.service_endpoints, local.blob_csi_node_subnet_only || local.etcd_backup_node_subnet_only ? ["Microsoft.Storage"] : []))
     content {
       service = service_endpoint.value
     }
@@ -73,7 +73,7 @@ resource "azurerm_subnet_nat_gateway_association" "nodes" {
 
 resource "azurerm_private_endpoint" "node_subnet" {
   for_each            = var.private_endpoints
-  name                = "pe-${var.name}-${each.key}"
+  name                = "pep-${var.name}-${each.key}"
   location            = var.location
   resource_group_name = local.resource_group_name
   subnet_id           = local.node_subnet_id
