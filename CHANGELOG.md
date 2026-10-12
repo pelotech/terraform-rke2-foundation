@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.1.0...v1.1.1) (2026-10-12)
+
+
+### Chores
+
+* **azure:** CAF balancer names, tenant copy scope and the security group on the subnet ([#40](https://github.com/pelotech/terraform-rke2-foundation/issues/40)) ([269f7ec](https://github.com/pelotech/terraform-rke2-foundation/commit/269f7ec8c8267e70fd3f3edc31633bb2199a45b1))
+
 ## [1.1.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.0.0...v1.1.0) (2026-10-12)
 
 
