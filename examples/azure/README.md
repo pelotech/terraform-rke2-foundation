@@ -85,7 +85,7 @@ Visual Studio one, need a different family per role. Destroy when done.
 
 | Name | Source | Version |
 | ---- | ------ | ------- |
-| <a name="module_cni"></a> [cni](#module\_cni) | /Users/damien/repos/pelotech/terraform-helm-cni-bootstrap | n/a |
+| <a name="module_cni"></a> [cni](#module\_cni) | github.com/pelotech/terraform-helm-cni-bootstrap | v1.1.0 |
 | <a name="module_stack"></a> [stack](#module\_stack) | ../../modules/azure | n/a |
 
 ## Resources
