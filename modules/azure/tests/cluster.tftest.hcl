@@ -27,8 +27,8 @@ run "servers_defaults" {
     error_message = "servers run as the server identity with managed boot diagnostics"
   }
   assert {
-    condition     = length(azurerm_network_interface.server) == 3 && azurerm_network_interface.server[1].name == "nic-platformdev-server-1" && length(azurerm_network_interface_security_group_association.server) == 3
-    error_message = "one NIC per server, each behind the node security group"
+    condition     = length(azurerm_network_interface.server) == 3 && azurerm_network_interface.server[1].name == "nic-platformdev-server-1"
+    error_message = "one NIC per server"
   }
   assert {
     condition     = length(azurerm_network_interface_backend_address_pool_association.server_api) == 3 && length(azurerm_network_interface_backend_address_pool_association.server_api_public) == 3
@@ -39,8 +39,8 @@ run "servers_defaults" {
 run "api_load_balancers_and_security_rule" {
   command = plan
   assert {
-    condition     = azurerm_lb.api.name == "lb-platformdev-api" && azurerm_lb.api.sku == "Standard" && azurerm_lb.api.frontend_ip_configuration[0].name == "api"
-    error_message = "a Standard internal load balancer"
+    condition     = azurerm_lb.api.name == "lbi-platformdev-api" && azurerm_lb.api_public[0].name == "lbe-platformdev-api" && azurerm_lb.api.sku == "Standard" && azurerm_lb.api.frontend_ip_configuration[0].name == "api"
+    error_message = "Standard internal and external load balancers, named by their CAF abbreviations"
   }
   assert {
     condition     = azurerm_lb_rule.api["api"].frontend_port == 6443 && azurerm_lb_rule.api["supervisor"].frontend_port == 9345 && azurerm_lb_probe.api["supervisor"].port == 9345 && azurerm_lb_rule.api["api"].idle_timeout_in_minutes == 30
@@ -101,7 +101,7 @@ run "agent_pool_defaults" {
     error_message = "initial size, zones, manual upgrades, no overprovisioning"
   }
   assert {
-    condition     = azurerm_linux_virtual_machine_scale_set.agent["general"].identity[0].type == "UserAssigned" && azurerm_linux_virtual_machine_scale_set.agent["general"].network_interface[0].ip_configuration[0].primary == true && azurerm_linux_virtual_machine_scale_set.agent["general"].disable_password_authentication == true
+    condition     = azurerm_linux_virtual_machine_scale_set.agent["general"].identity[0].type == "UserAssigned" && azurerm_linux_virtual_machine_scale_set.agent["general"].network_interface[0].ip_configuration[0].primary == true && azurerm_linux_virtual_machine_scale_set.agent["general"].network_interface[0].network_security_group_id == null && azurerm_linux_virtual_machine_scale_set.agent["general"].disable_password_authentication == true
     error_message = "agents run as the agent identity on one primary NIC, without passwords"
   }
   assert {

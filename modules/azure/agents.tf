@@ -98,9 +98,8 @@ resource "azurerm_linux_virtual_machine_scale_set" "agent" {
   }
 
   network_interface {
-    name                      = "primary"
-    primary                   = true
-    network_security_group_id = azurerm_network_security_group.nodes.id
+    name    = "primary"
+    primary = true
 
     ip_configuration {
       name      = "primary"

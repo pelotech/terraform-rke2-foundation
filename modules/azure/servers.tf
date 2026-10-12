@@ -17,19 +17,6 @@ resource "azurerm_network_interface" "server" {
   }
 }
 
-resource "azurerm_network_interface_security_group_association" "server" {
-  count                     = var.servers.count
-  network_interface_id      = azurerm_network_interface.server[count.index].id
-  network_security_group_id = azurerm_network_security_group.nodes.id
-
-  # One write at a time per NIC: the provider locks pool associations by name and this one by id, so they overlap
-  # and Azure cancels one of the two.
-  depends_on = [
-    azurerm_network_interface_backend_address_pool_association.server_api,
-    azurerm_network_interface_backend_address_pool_association.server_api_public,
-  ]
-}
-
 resource "azurerm_network_interface_backend_address_pool_association" "server_api" {
   count                   = var.servers.count
   network_interface_id    = azurerm_network_interface.server[count.index].id
@@ -130,16 +117,16 @@ resource "azurerm_linux_virtual_machine" "server" {
     ignore_changes = [custom_data]
   }
 
-  # The NIC is in its pools and NSG before the VM boots, and leaves them only after the VM is gone: Azure cancels a NIC
+  # The NIC is in its pools before the VM boots, and leaves them only after the VM is gone: Azure cancels a NIC
   # update that overlaps the VM delete.
   depends_on = [
     azurerm_role_assignment.server,
     azurerm_private_endpoint.storage,
     azurerm_key_vault_secret.node,
     azurerm_subnet_nat_gateway_association.nodes,
+    azurerm_subnet_network_security_group_association.nodes,
     azurerm_lb_rule.api,
     azurerm_network_interface_backend_address_pool_association.server_api,
     azurerm_network_interface_backend_address_pool_association.server_api_public,
-    azurerm_network_interface_security_group_association.server,
   ]
 }

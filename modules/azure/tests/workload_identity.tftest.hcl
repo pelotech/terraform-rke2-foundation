@@ -7,7 +7,7 @@ mock_provider "azurerm" {
 run "issuer_and_both_identities" {
   command = plan
   assert {
-    condition     = length(azurerm_storage_account.oidc) == 1 && azurerm_storage_account.oidc[0].name == "acmeplatformdevoidc" && azurerm_storage_account.oidc[0].allow_nested_items_to_be_public == false && azurerm_storage_account.oidc[0].shared_access_key_enabled == true && azurerm_storage_account.oidc[0].min_tls_version == "TLS1_2"
+    condition     = length(azurerm_storage_account.oidc) == 1 && azurerm_storage_account.oidc[0].name == "acmeplatformdevoidc" && azurerm_storage_account.oidc[0].allow_nested_items_to_be_public == false && azurerm_storage_account.oidc[0].shared_access_key_enabled == true && azurerm_storage_account.oidc[0].min_tls_version == "TLS1_2" && azurerm_storage_account.oidc[0].allowed_copy_scope == "AAD"
     error_message = "an issuer account with the given name, no public containers, keys on for the static website setting"
   }
   assert {

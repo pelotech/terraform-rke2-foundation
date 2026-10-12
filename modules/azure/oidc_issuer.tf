@@ -15,6 +15,7 @@ resource "azurerm_storage_account" "oidc" {
   https_traffic_only_enabled      = true
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
+  allowed_copy_scope              = "AAD"
   # Static website hosting is a blob data-plane setting Terraform sets with the account key; the account only ever holds public documents.
   shared_access_key_enabled = true
   tags                      = var.tags

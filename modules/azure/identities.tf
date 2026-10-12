@@ -6,6 +6,10 @@ locals {
       node_subnet         = { scope = local.node_subnet_id, role = "Network Contributor" }
       key_vault_secrets   = { scope = azurerm_key_vault.this.id, role = "Key Vault Secrets User" }
     },
+    # The module's own group sits in the node group, which Contributor already covers.
+    local.create_vnet ? {} : {
+      node_security_group = { scope = var.network.existing.security_group_id, role = "Network Contributor" }
+    },
     local.oidc_issuer_enabled ? {
       oidc_storage = { scope = azurerm_storage_account.oidc[0].id, role = "Storage Blob Data Contributor" }
     } : {},

@@ -10,8 +10,8 @@ locals {
     vnetName                    = local.vnet_name
     vnetResourceGroup           = local.vnet_resource_group_name
     subnetName                  = local.node_subnet_name
-    securityGroupName           = azurerm_network_security_group.nodes.name
-    securityGroupResourceGroup  = local.node_resource_group_name
+    securityGroupName           = local.node_security_group_name
+    securityGroupResourceGroup  = local.node_security_group_resource_group_name
     loadBalancerSku             = "standard"
     useManagedIdentityExtension = true
     userAssignedIdentityID      = azurerm_user_assigned_identity.server.client_id
