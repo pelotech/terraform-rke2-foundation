@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.0.0...v1.1.0) (2026-10-12)
+
+
+### Features
+
+* **azure:** support Private Link for cluster storage ([#38](https://github.com/pelotech/terraform-rke2-foundation/issues/38)) ([7eb7aa4](https://github.com/pelotech/terraform-rke2-foundation/commit/7eb7aa480f48e4cb8a101fec8efd35470a06a5bf))
+
 ## [1.0.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.4.1...v1.0.0) (2026-10-12)
 
 
