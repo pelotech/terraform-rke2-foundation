@@ -7,6 +7,7 @@ locals {
 resource "azurerm_storage_account" "oidc" {
   count                           = local.oidc_issuer_enabled ? 1 : 0
   name                            = var.workload_identity.storage_account_name
+  allowed_copy_scope              = var.workload_identity.allowed_copy_scope
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"

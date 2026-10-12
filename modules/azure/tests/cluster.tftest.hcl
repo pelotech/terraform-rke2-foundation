@@ -39,8 +39,8 @@ run "servers_defaults" {
 run "api_load_balancers_and_security_rule" {
   command = plan
   assert {
-    condition     = azurerm_lb.api.name == "lb-platformdev-api" && azurerm_lb.api.sku == "Standard" && azurerm_lb.api.frontend_ip_configuration[0].name == "api"
-    error_message = "a Standard internal load balancer"
+    condition     = azurerm_lb.api.name == "lbi-platformdev-api" && azurerm_lb.api_public[0].name == "lbe-platformdev-api" && azurerm_lb.api.sku == "Standard" && azurerm_lb.api.frontend_ip_configuration[0].name == "api"
+    error_message = "Standard internal and external load balancers, named by their CAF abbreviations"
   }
   assert {
     condition     = azurerm_lb_rule.api["api"].frontend_port == 6443 && azurerm_lb_rule.api["supervisor"].frontend_port == 9345 && azurerm_lb_probe.api["supervisor"].port == 9345 && azurerm_lb_rule.api["api"].idle_timeout_in_minutes == 30

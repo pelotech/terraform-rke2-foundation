@@ -17,7 +17,7 @@ locals {
 
 # The fixed registration address: every node joins through it and the API answers on it.
 resource "azurerm_lb" "api" {
-  name                = coalesce(var.cluster_endpoint.internal_lb_name, "lb-${var.name}-api")
+  name                = "lbi-${var.name}-api"
   location            = var.location
   resource_group_name = local.resource_group_name
   sku                 = "Standard"
@@ -49,7 +49,7 @@ resource "azurerm_public_ip" "api" {
 
 resource "azurerm_lb" "api_public" {
   count               = var.cluster_endpoint.public ? 1 : 0
-  name                = "lb-${var.name}-api-public"
+  name                = "lbe-${var.name}-api"
   location            = var.location
   resource_group_name = local.resource_group_name
   sku                 = "Standard"
