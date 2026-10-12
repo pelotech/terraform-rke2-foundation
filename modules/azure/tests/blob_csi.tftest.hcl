@@ -22,7 +22,7 @@ run "set_creates_account_containers_and_grant" {
     blob_csi = { storage_account_name = "acmeplatformdevcsi", containers = ["backups", "media"] }
   }
   assert {
-    condition     = azurerm_storage_account.blob_csi[0].name == "acmeplatformdevcsi" && azurerm_storage_account.blob_csi[0].shared_access_key_enabled == false && azurerm_storage_account.blob_csi[0].min_tls_version == "TLS1_2"
+    condition     = azurerm_storage_account.blob_csi[0].name == "acmeplatformdevcsi" && azurerm_storage_account.blob_csi[0].shared_access_key_enabled == false && azurerm_storage_account.blob_csi[0].min_tls_version == "TLS1_2" && azurerm_storage_account.blob_csi[0].allowed_copy_scope == "AAD"
     error_message = "the account carries the given name; keys off; TLS 1.2"
   }
   assert {

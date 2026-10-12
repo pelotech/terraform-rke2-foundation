@@ -7,7 +7,6 @@ locals {
 resource "azurerm_storage_account" "blob_csi" {
   count                           = local.create_blob_storage_account ? 1 : 0
   name                            = var.blob_csi.storage_account_name
-  allowed_copy_scope              = var.blob_csi.allowed_copy_scope
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"
@@ -16,6 +15,7 @@ resource "azurerm_storage_account" "blob_csi" {
   https_traffic_only_enabled      = true
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
+  allowed_copy_scope              = "AAD"
   shared_access_key_enabled       = var.blob_csi.shared_access_key_enabled
   public_network_access           = local.blob_csi_private_endpoint ? "Disabled" : "Enabled"
   tags                            = var.tags

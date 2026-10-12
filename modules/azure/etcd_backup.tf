@@ -9,7 +9,6 @@ locals {
 resource "azurerm_storage_account" "etcd_backup" {
   count                           = local.etcd_backup_enabled ? 1 : 0
   name                            = var.etcd_backup.storage_account_name
-  allowed_copy_scope              = var.etcd_backup.allowed_copy_scope
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"
@@ -18,6 +17,7 @@ resource "azurerm_storage_account" "etcd_backup" {
   https_traffic_only_enabled      = true
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
+  allowed_copy_scope              = "AAD"
   shared_access_key_enabled       = false
   public_network_access           = local.etcd_backup_private_endpoint ? "Disabled" : "Enabled"
   tags                            = var.tags

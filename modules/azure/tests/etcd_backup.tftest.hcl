@@ -7,7 +7,7 @@ mock_provider "azurerm" {
 run "private_account_container_and_grant" {
   command = apply
   assert {
-    condition     = azurerm_storage_account.etcd_backup[0].name == "acmeplatformdevetcd" && azurerm_storage_account.etcd_backup[0].shared_access_key_enabled == false && azurerm_storage_account.etcd_backup[0].allow_nested_items_to_be_public == false && azurerm_storage_account.etcd_backup[0].blob_properties[0].versioning_enabled == true && azurerm_storage_account.etcd_backup[0].blob_properties[0].delete_retention_policy[0].days == 30
+    condition     = azurerm_storage_account.etcd_backup[0].name == "acmeplatformdevetcd" && azurerm_storage_account.etcd_backup[0].shared_access_key_enabled == false && azurerm_storage_account.etcd_backup[0].allow_nested_items_to_be_public == false && azurerm_storage_account.etcd_backup[0].allowed_copy_scope == "AAD" && azurerm_storage_account.etcd_backup[0].blob_properties[0].versioning_enabled == true && azurerm_storage_account.etcd_backup[0].blob_properties[0].delete_retention_policy[0].days == 30
     error_message = "a dedicated account with the given name: keys off, nothing public, versioning and 30 days of soft delete"
   }
   assert {
