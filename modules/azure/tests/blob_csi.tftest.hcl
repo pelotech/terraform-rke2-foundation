@@ -80,7 +80,7 @@ run "private_endpoint_preserves_keys_and_private_containers" {
     error_message = "PrivateEndpoint must not enable or require Microsoft.Storage service endpoints."
   }
   assert {
-    condition     = length(azurerm_private_endpoint.storage) == 1 && azurerm_private_endpoint.storage["blob-csi"].private_dns_zone_group[0].private_dns_zone_ids == var.blob_csi.private_dns_zone_ids
+    condition     = length(azurerm_private_endpoint.storage) == 1 && azurerm_private_endpoint.storage["blob-csi"].name == "pep-platformdev-blob-csi" && azurerm_private_endpoint.storage["blob-csi"].private_dns_zone_group[0].private_dns_zone_ids == var.blob_csi.private_dns_zone_ids
     error_message = "One Blob endpoint integrates with the supplied DNS zone."
   }
 }

@@ -495,3 +495,35 @@ run "extra_agent_config_must_be_a_map" {
   }
   expect_failures = [var.extra_agent_config]
 }
+
+run "blob_csi_extra_subnets_need_node_subnet_access" {
+  command = plan
+  variables {
+    blob_csi = { storage_account_name = "acmeplatformdevcsi", network_access = "Public", extra_subnet_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared/subnets/snet-other"] }
+  }
+  expect_failures = [var.blob_csi]
+}
+
+run "blob_csi_extra_subnets_have_no_place_behind_a_private_endpoint" {
+  command = plan
+  variables {
+    blob_csi = { storage_account_name = "acmeplatformdevcsi", network_access = "PrivateEndpoint", private_dns_zone_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-pdns/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.usgovcloudapi.net"], extra_subnet_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared/subnets/snet-other"] }
+  }
+  expect_failures = [var.blob_csi]
+}
+
+run "blob_csi_private_dns_zone_ids_must_be_private_dns_zones" {
+  command = plan
+  variables {
+    blob_csi = { storage_account_name = "acmeplatformdevcsi", network_access = "PrivateEndpoint", private_dns_zone_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-pdns/providers/Microsoft.Network/dnsZones/example.com"] }
+  }
+  expect_failures = [var.blob_csi]
+}
+
+run "etcd_backup_private_dns_zone_ids_must_be_private_dns_zones" {
+  command = plan
+  variables {
+    etcd_backup = { storage_account_name = "acmeplatformdevetcd", network_access = "PrivateEndpoint", private_dns_zone_ids = ["privatelink.blob.core.usgovcloudapi.net"] }
+  }
+  expect_failures = [var.etcd_backup]
+}

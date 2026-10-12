@@ -71,7 +71,7 @@ run "private_endpoint_needs_no_service_endpoint" {
     error_message = "PrivateEndpoint disables public networking without requiring a subnet service endpoint."
   }
   assert {
-    condition     = azurerm_private_endpoint.storage["etcd-backup"].subnet_id == var.network.existing.node_subnet_id && azurerm_private_endpoint.storage["etcd-backup"].resource_group_name == var.resource_group.name && azurerm_private_endpoint.storage["etcd-backup"].private_service_connection[0].subresource_names == tolist(["blob"]) && azurerm_private_endpoint.storage["etcd-backup"].private_dns_zone_group[0].private_dns_zone_ids == var.etcd_backup.private_dns_zone_ids
+    condition     = azurerm_private_endpoint.storage["etcd-backup"].name == "pep-platformdev-etcd-backup" && azurerm_private_endpoint.storage["etcd-backup"].subnet_id == var.network.existing.node_subnet_id && azurerm_private_endpoint.storage["etcd-backup"].resource_group_name == var.resource_group.name && azurerm_private_endpoint.storage["etcd-backup"].private_service_connection[0].subresource_names == tolist(["blob"]) && azurerm_private_endpoint.storage["etcd-backup"].private_dns_zone_group[0].private_dns_zone_ids == var.etcd_backup.private_dns_zone_ids
     error_message = "The backup Blob endpoint belongs in the workload RG and existing node subnet, with the supplied DNS zone."
   }
 }

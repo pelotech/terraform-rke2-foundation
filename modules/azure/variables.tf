@@ -445,6 +445,10 @@ variable "etcd_backup" {
     condition     = var.etcd_backup == null ? true : (var.etcd_backup.network_access == "PrivateEndpoint") == (length(var.etcd_backup.private_dns_zone_ids) > 0)
     error_message = "etcd_backup.private_dns_zone_ids must be nonempty exactly when network_access is PrivateEndpoint."
   }
+  validation {
+    condition     = var.etcd_backup == null ? true : alltrue([for id in var.etcd_backup.private_dns_zone_ids : can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/privateDnsZones/[^/]+$", id))])
+    error_message = "etcd_backup.private_dns_zone_ids must be private DNS zone resource ids: /subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Network/privateDnsZones/<zone>."
+  }
 
   validation {
     condition     = var.etcd_backup == null ? true : var.etcd_backup.retention_days >= 1 && var.etcd_backup.retention_days <= 365
@@ -568,11 +572,19 @@ variable "blob_csi" {
     shared_access_key_enabled = optional(bool, false)
     private_dns_zone_ids      = optional(list(string), [])
   })
-  description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. The README section \"Storage\" explains each field."
+  description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. network_access is NodeSubnet, Public or PrivateEndpoint; extra_subnet_ids extends NodeSubnet access only, and private_dns_zone_ids is required exactly with PrivateEndpoint. The README section \"Storage\" explains each field."
 
   validation {
     condition     = var.blob_csi == null ? true : (var.blob_csi.network_access == "PrivateEndpoint") == (length(var.blob_csi.private_dns_zone_ids) > 0)
     error_message = "blob_csi.private_dns_zone_ids must be nonempty exactly when network_access is PrivateEndpoint."
+  }
+  validation {
+    condition     = var.blob_csi == null ? true : alltrue([for id in var.blob_csi.private_dns_zone_ids : can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/privateDnsZones/[^/]+$", id))])
+    error_message = "blob_csi.private_dns_zone_ids must be private DNS zone resource ids: /subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Network/privateDnsZones/<zone>."
+  }
+  validation {
+    condition     = var.blob_csi == null ? true : var.blob_csi.network_access == "NodeSubnet" || length(var.blob_csi.extra_subnet_ids) == 0
+    error_message = "blob_csi.extra_subnet_ids extends NodeSubnet access only; with Public or PrivateEndpoint access it would be ignored."
   }
 
   validation {

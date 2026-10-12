@@ -73,7 +73,7 @@ resource "azurerm_subnet_nat_gateway_association" "nodes" {
 
 resource "azurerm_private_endpoint" "node_subnet" {
   for_each            = var.private_endpoints
-  name                = "pe-${var.name}-${each.key}"
+  name                = "pep-${var.name}-${each.key}"
   location            = var.location
   resource_group_name = local.resource_group_name
   subnet_id           = local.node_subnet_id
