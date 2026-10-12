@@ -22,6 +22,25 @@ The helm provider and the cni-bootstrap module use its outputs. See "Install the
 - `kubectl` on the host that applies cni-bootstrap.
 - A marketplace image accepted in your subscription. See "Node image".
 
+## Resource group ownership
+
+By default the module creates and owns the node resource group. To place a new cluster in a customer-owned group,
+set both creation flags to false and supply that group for workloads and nodes:
+
+```hcl
+create_resource_group      = false
+create_node_resource_group = false
+resource_group_name        = "rg-customer-team"
+node_resource_group_name   = "rg-customer-team"
+```
+
+The existing node group is read through a data source; its tags and lifecycle remain with its owner. Workloads and
+nodes can also use separate groups. Existing consumers that keep the default retain their node group through the
+included resource-address migration.
+
+For a group already managed by this module, turning creation off is an ownership migration: remove that ownership
+from state through a separately reviewed handoff before changing the flag. The flag alone does not perform the handoff.
+
 ## Quick start
 
 ```hcl
@@ -360,6 +379,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | [azurerm_virtual_network.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network) | resource |
 | [tls_private_key.ssh](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
 | [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
+| [azurerm_resource_group.nodes](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group) | data source |
 
 ## Inputs
 
@@ -382,6 +402,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_cluster_endpoint_public_access"></a> [cluster\_endpoint\_public\_access](#input\_cluster\_endpoint\_public\_access) | Adds a public load balancer in front of the API server. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap. | `bool` | `true` | no |
 | <a name="input_cni"></a> [cni](#input\_cni) | CNI to run: cilium, kube-ovn or canal. cilium and kube-ovn set RKE2 cni none and cni-bootstrap installs the CNI; cilium also turns kube-proxy off. canal is the bundled, FIPS-rebuilt CNI. kube-ovn also creates the CNI node pool. | `string` | `"cilium"` | no |
 | <a name="input_cni_node_pool"></a> [cni\_node\_pool](#input\_cni\_node\_pool) | Dedicated CNI pool, created for kube-ovn as the scale set named cni. vm\_size and zones default to the servers'. Set enabled = false, then true, to recycle the pool. | <pre>object({<br/>    enabled         = optional(bool, true)<br/>    vm_size         = optional(string)<br/>    zones           = optional(list(string))<br/>    node_count      = optional(number, 1)<br/>    os_disk_size_gb = optional(number, 100)<br/>    os_disk_type    = optional(string, "Premium_LRS")<br/>  })</pre> | `{}` | no |
+| <a name="input_create_node_resource_group"></a> [create\_node\_resource\_group](#input\_create\_node\_resource\_group) | Create and manage the node resource group. Set false to look up an existing group without owning its lifecycle. | `bool` | `true` | no |
 | <a name="input_create_resource_group"></a> [create\_resource\_group](#input\_create\_resource\_group) | Creates the resource group. Set false to use an existing group named resource\_group\_name. | `bool` | `true` | no |
 | <a name="input_disable_components"></a> [disable\_components](#input\_disable\_components) | Packaged RKE2 components not to deploy. Default: no snapshot controller, which the GitOps layer provides, as on AKS. The ingress is ingress\_controller. | `list(string)` | <pre>[<br/>  "rke2-snapshot-controller",<br/>  "rke2-snapshot-controller-crd",<br/>  "rke2-snapshot-validation-webhook"<br/>]</pre> | no |
 | <a name="input_disable_firewalld"></a> [disable\_firewalld](#input\_disable\_firewalld) | Stops firewalld at bootstrap on images that ship it, such as RHEL. Set false on an image whose firewalld rules allow the RKE2 ports. | `bool` | `true` | no |
@@ -400,7 +421,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_kube_exec_login_mode"></a> [kube\_exec\_login\_mode](#input\_kube\_exec\_login\_mode) | kubelogin --login mode in kube\_exec, used with entra\_oidc. azurecli reuses your az session; use spn, msi or workloadidentity in CI. | `string` | `"azurecli"` | no |
 | <a name="input_kubelet_args"></a> [kubelet\_args](#input\_kubelet\_args) | kubelet-arg entries for every node, as flag=value strings. | `list(string)` | `[]` | no |
 | <a name="input_nat_gateway"></a> [nat\_gateway](#input\_nat\_gateway) | NAT Gateway for node egress, created whenever the module creates the VNet. | <pre>object({<br/>    public_ip_count      = optional(number, 1)<br/>    idle_timeout_minutes = optional(number, 4)<br/>  })</pre> | `{}` | no |
-| <a name="input_node_resource_group_name"></a> [node\_resource\_group\_name](#input\_node\_resource\_group\_name) | Resource group the module creates for the nodes and everything the cloud provider and CSI driver create. null generates rg-<name>-nodes. | `string` | `null` | no |
+| <a name="input_node_resource_group_name"></a> [node\_resource\_group\_name](#input\_node\_resource\_group\_name) | Resource group for nodes and resources the cloud provider and CSI drivers create. Created by default; reused when create\_node\_resource\_group is false. null generates rg-<name>-nodes. | `string` | `null` | no |
 | <a name="input_pki"></a> [pki](#input\_pki) | Validity of the CA set and of the admin client certificate, which Terraform renews admin\_early\_renewal\_hours before it expires. | <pre>object({<br/>    ca_validity_hours         = optional(number, 87600)<br/>    admin_validity_hours      = optional(number, 8760)<br/>    admin_early_renewal_hours = optional(number, 720)<br/>  })</pre> | `{}` | no |
 | <a name="input_pod_cidr"></a> [pod\_cidr](#input\_pod\_cidr) | Pod CIDR, the RKE2 cluster-cidr. Pass the cluster\_pod\_cidr output to cni-bootstrap so the CNI uses the same range. | `string` | `"10.244.0.0/16"` | no |
 | <a name="input_private_endpoints"></a> [private\_endpoints](#input\_private\_endpoints) | Private endpoints in the node subnet, one for each target resource. You select the key names. Example subresource\_names: ["blob"], ["vault"], ["registry"]. | <pre>map(object({<br/>    resource_id          = string<br/>    subresource_names    = list(string)<br/>    private_dns_zone_ids = list(string)<br/>  }))</pre> | `{}` | no |

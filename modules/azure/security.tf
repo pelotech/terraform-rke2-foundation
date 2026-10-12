@@ -2,7 +2,7 @@
 resource "azurerm_network_security_group" "nodes" {
   name                = "nsg-${var.name}-nodes"
   location            = var.location
-  resource_group_name = azurerm_resource_group.nodes.name
+  resource_group_name = local.node_resource_group_name
   tags                = var.tags
 }
 
@@ -19,6 +19,6 @@ resource "azurerm_network_security_rule" "api_server" {
   source_address_prefix       = length(var.cluster_endpoint_authorized_ip_ranges) > 0 ? null : "Internet"
   source_address_prefixes     = length(var.cluster_endpoint_authorized_ip_ranges) > 0 ? var.cluster_endpoint_authorized_ip_ranges : null
   destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.nodes.name
+  resource_group_name         = local.node_resource_group_name
   network_security_group_name = azurerm_network_security_group.nodes.name
 }

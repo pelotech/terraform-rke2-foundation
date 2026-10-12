@@ -115,7 +115,7 @@ output "resource_group_name" {
 
 output "node_resource_group_name" {
   description = "Resource group holding the nodes and what the cloud provider and CSI driver create."
-  value       = azurerm_resource_group.nodes.name
+  value       = local.node_resource_group_name
 }
 
 output "location" {

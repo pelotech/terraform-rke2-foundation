@@ -7,7 +7,7 @@ resource "azurerm_network_interface" "server" {
   count               = var.servers.count
   name                = "nic-${var.name}-server-${count.index}"
   location            = var.location
-  resource_group_name = azurerm_resource_group.nodes.name
+  resource_group_name = local.node_resource_group_name
   tags                = var.tags
 
   ip_configuration {
@@ -49,7 +49,7 @@ resource "azurerm_managed_disk" "etcd" {
   count                = var.servers.etcd_disk.enabled ? var.servers.count : 0
   name                 = "disk-${var.name}-server-${count.index}-etcd"
   location             = var.location
-  resource_group_name  = azurerm_resource_group.nodes.name
+  resource_group_name  = local.node_resource_group_name
   zone                 = local.server_zones[count.index]
   storage_account_type = "PremiumV2_LRS"
   create_option        = "Empty"
@@ -78,7 +78,7 @@ resource "azurerm_linux_virtual_machine" "server" {
   name                            = "${var.name}-server-${count.index}"
   computer_name                   = "${var.name}-server-${count.index}"
   location                        = var.location
-  resource_group_name             = azurerm_resource_group.nodes.name
+  resource_group_name             = local.node_resource_group_name
   size                            = var.servers.vm_size
   zone                            = local.server_zones[count.index]
   admin_username                  = var.admin_username

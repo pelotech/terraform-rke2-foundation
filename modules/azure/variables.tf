@@ -36,10 +36,16 @@ variable "create_resource_group" {
   description = "Creates the resource group. Set false to use an existing group named resource_group_name."
 }
 
+variable "create_node_resource_group" {
+  type        = bool
+  default     = true
+  description = "Create and manage the node resource group. Set false to look up an existing group without owning its lifecycle."
+}
+
 variable "node_resource_group_name" {
   type        = string
   default     = null
-  description = "Resource group the module creates for the nodes and everything the cloud provider and CSI driver create. null generates rg-<name>-nodes."
+  description = "Resource group for nodes and resources the cloud provider and CSI drivers create. Created by default; reused when create_node_resource_group is false. null generates rg-<name>-nodes."
 }
 
 variable "tags" {

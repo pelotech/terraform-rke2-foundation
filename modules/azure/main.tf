@@ -5,10 +5,19 @@ locals {
   node_resource_group_name_wanted = coalesce(var.node_resource_group_name, "rg-${var.name}-nodes")
   shared_resource_group           = local.resource_group_name_wanted == local.node_resource_group_name_wanted
 
+  node_resource_group_name = coalesce(
+    one(azurerm_resource_group.nodes[*].name),
+    one(data.azurerm_resource_group.nodes[*].name),
+  )
+  node_resource_group_id = coalesce(
+    one(azurerm_resource_group.nodes[*].id),
+    one(data.azurerm_resource_group.nodes[*].id),
+  )
+
   # Prefer the created workload group, then the shared node group, then the existing group.
   resource_group_name = coalesce(
     one(azurerm_resource_group.this[*].name),
-    local.shared_resource_group ? azurerm_resource_group.nodes.name : null,
+    local.shared_resource_group ? local.node_resource_group_name : null,
     local.resource_group_name_wanted,
   )
 
@@ -42,7 +51,20 @@ resource "azurerm_resource_group" "this" {
 
 # Nodes, scale sets and cloud-provider/CSI resources use this group; workloads can share it.
 resource "azurerm_resource_group" "nodes" {
+  count    = var.create_node_resource_group ? 1 : 0
   name     = local.node_resource_group_name_wanted
   location = var.location
   tags     = var.tags
+}
+
+# The platform owns this group; reading it does not import it into cluster state.
+data "azurerm_resource_group" "nodes" {
+  count = var.create_node_resource_group ? 0 : 1
+  name  = local.node_resource_group_name_wanted
+}
+
+# Preserve the node group address for existing consumers that keep the default.
+moved {
+  from = azurerm_resource_group.nodes
+  to   = azurerm_resource_group.nodes[0]
 }

@@ -48,7 +48,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "agent" {
   name                 = "vmss-${var.name}-${each.key}"
   computer_name_prefix = "${var.name}-${each.key}-"
   location             = var.location
-  resource_group_name  = azurerm_resource_group.nodes.name
+  resource_group_name  = local.node_resource_group_name
   sku                  = each.value.vm_size
   instances            = each.value.node_count
   zones                = length(each.value.zones) > 0 ? each.value.zones : null

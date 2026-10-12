@@ -2,7 +2,7 @@ locals {
   # Servers run cloud-provider-azure and cluster-autoscaler with their identity; agents run the disk and blob CSI drivers with theirs.
   server_identity_grants = merge(
     {
-      node_resource_group = { scope = azurerm_resource_group.nodes.id, role = "Contributor" }
+      node_resource_group = { scope = local.node_resource_group_id, role = "Contributor" }
       node_subnet         = { scope = local.node_subnet_id, role = "Network Contributor" }
       key_vault_secrets   = { scope = azurerm_key_vault.this.id, role = "Key Vault Secrets User" }
     },
@@ -14,7 +14,7 @@ locals {
     } : {},
   )
   agent_identity_grants = merge(
-    { node_resource_group = { scope = azurerm_resource_group.nodes.id, role = "Contributor" } },
+    { node_resource_group = { scope = local.node_resource_group_id, role = "Contributor" } },
     # Agents read only their own secrets, each granted on the secret itself.
     { for name in keys(module.bootstrap.agent_secret_paths) : name => { scope = azurerm_key_vault_secret.node[name].resource_versionless_id, role = "Key Vault Secrets User" } },
     local.create_blob_storage_account ? {
