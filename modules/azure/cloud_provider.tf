@@ -60,7 +60,7 @@ locals {
             cloudConfigSecretName  = "azure-cloud-config"
             configureCloudRoutes   = "false"
             allocateNodeCidrs      = "false"
-            clusterCIDR            = var.pod_cidr
+            clusterCIDR            = var.cluster_network.pod_cidr
             nodeSelector           = { "node-role.kubernetes.io/control-plane" = "true" }
             tolerations            = local.cloud_provider_tolerations
           }, local.cloud_provider_image)

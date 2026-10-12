@@ -4,11 +4,11 @@ mock_provider "azurerm" {
   source = "./tests/mocks"
 }
 
-run "private_account_container_and_grant_by_default" {
+run "private_account_container_and_grant" {
   command = apply
   assert {
     condition     = azurerm_storage_account.etcd_backup[0].name == "acmeplatformdevetcd" && azurerm_storage_account.etcd_backup[0].shared_access_key_enabled == false && azurerm_storage_account.etcd_backup[0].allow_nested_items_to_be_public == false && azurerm_storage_account.etcd_backup[0].blob_properties[0].versioning_enabled == true && azurerm_storage_account.etcd_backup[0].blob_properties[0].delete_retention_policy[0].days == 30
-    error_message = "a dedicated account: keys off, nothing public, versioning and 30 days of soft delete"
+    error_message = "a dedicated account with the given name: keys off, nothing public, versioning and 30 days of soft delete"
   }
   assert {
     condition     = azurerm_storage_account_network_rules.etcd_backup[0].default_action == "Deny" && tolist(azurerm_storage_account_network_rules.etcd_backup[0].virtual_network_subnet_ids) == tolist([azurerm_subnet.nodes[0].id]) && contains([for e in azurerm_subnet.nodes[0].service_endpoint : e.service], "Microsoft.Storage")
@@ -28,21 +28,25 @@ run "private_account_container_and_grant_by_default" {
   }
 }
 
-run "disabled_creates_nothing" {
+run "null_creates_nothing" {
   command = plan
   variables {
-    etcd_backup = { enabled = false }
+    etcd_backup = null
   }
   assert {
     condition     = length(azurerm_storage_account.etcd_backup) == 0 && length(azurerm_storage_container.etcd_backup) == 0 && !contains(keys(azurerm_role_assignment.server), "etcd_backup")
-    error_message = "etcd_backup.enabled = false creates no account, container or grant"
+    error_message = "etcd_backup = null creates no account, container or grant"
+  }
+  assert {
+    condition     = output.etcd_backup_storage_account_id == null && output.etcd_backup_container_url == null
+    error_message = "null outputs without backups"
   }
 }
 
 run "retention_in_range" {
   command = plan
   variables {
-    etcd_backup = { retention_days = 0 }
+    etcd_backup = { storage_account_name = "acmeplatformdevetcd", retention_days = 0 }
   }
   expect_failures = [var.etcd_backup]
 }

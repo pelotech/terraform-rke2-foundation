@@ -1,9 +1,13 @@
 locals {
-  entra_oidc_issuer_url = coalesce(var.entra_oidc.issuer_url, "https://${local.azure_cloud.entra_login_host}/${data.azurerm_client_config.current.tenant_id}/v2.0")
+  entra_enabled         = var.entra_oidc != null
+  entra_oidc_issuer_url = local.entra_enabled ? coalesce(var.entra_oidc.issuer_url, "https://${local.azure_cloud.entra_login_host}/${data.azurerm_client_config.current.tenant_id}/v2.0") : null
   # Without a prefix the API server prepends the issuer URL to every username that is not an email; "-" turns that off.
-  entra_username_prefix = var.entra_oidc.username_prefix == null ? "" : var.entra_oidc.username_prefix
+  entra_username_prefix  = local.entra_enabled ? (var.entra_oidc.username_prefix == null ? "" : var.entra_oidc.username_prefix) : ""
+  entra_admin_group_ids  = local.entra_enabled ? var.entra_oidc.admin_group_object_ids : []
+  entra_admin_object_ids = local.entra_enabled ? var.entra_oidc.admin_object_ids : []
+  entra_reader_ids       = local.entra_enabled ? var.entra_oidc.reader_object_ids : []
 
-  entra_oidc_apiserver_args = var.entra_oidc.enabled ? [
+  entra_oidc_apiserver_args = local.entra_enabled ? [
     for flag, value in {
       "oidc-issuer-url"      = local.entra_oidc_issuer_url
       "oidc-client-id"       = var.entra_oidc.client_id
@@ -14,23 +18,23 @@ locals {
   ] : []
 
   # The block the AKS foundation emits, with the consumer's app registration as the audience.
-  kube_exec = var.entra_oidc.enabled ? {
+  kube_exec = local.entra_enabled ? {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "kubelogin"
-    args        = ["get-token", "--login", var.kube_exec_login_mode, "--server-id", var.entra_oidc.client_id, "--environment", local.azure_cloud.environment]
+    args        = ["get-token", "--login", var.entra_oidc.login_mode, "--server-id", var.entra_oidc.client_id, "--environment", local.azure_cloud.environment]
     env         = {}
   } : null
 
   # Subject names as the API server derives them: the raw group id, and the username prefix before an object id.
-  entra_user_name = { for id in concat(var.entra_oidc.admin_object_ids, var.entra_oidc.reader_object_ids) : id => "${local.entra_username_prefix}${id}" }
+  entra_user_name = { for id in concat(local.entra_admin_object_ids, local.entra_reader_ids) : id => "${local.entra_username_prefix}${id}" }
   entra_admin_subjects = concat(
-    [for id in var.entra_oidc.admin_group_object_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "Group", name = id }],
-    [for id in var.entra_oidc.admin_object_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "User", name = local.entra_user_name[id] }],
+    [for id in local.entra_admin_group_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "Group", name = id }],
+    [for id in local.entra_admin_object_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "User", name = local.entra_user_name[id] }],
   )
-  entra_reader_subjects = [for id in var.entra_oidc.reader_object_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "User", name = local.entra_user_name[id] }]
+  entra_reader_subjects = [for id in local.entra_reader_ids : { apiGroup = "rbac.authorization.k8s.io", kind = "User", name = local.entra_user_name[id] }]
 
   # Applied by every server from its manifests directory, so the first Entra login already has its rights.
-  entra_access_manifests = var.entra_oidc.enabled && length(concat(local.entra_admin_subjects, local.entra_reader_subjects)) > 0 ? {
+  entra_access_manifests = local.entra_enabled ? {
     "entra-access.yaml" = join("---\n", concat(
       length(local.entra_admin_subjects) == 0 ? [] : [yamlencode({
         apiVersion = "rbac.authorization.k8s.io/v1"
@@ -66,7 +70,7 @@ locals {
   } : {}
 
   # Kubeconfig for people and pipelines: no secret in it, kubelogin fetches the token.
-  kubeconfig_entra = var.entra_oidc.enabled ? yamlencode({
+  kubeconfig_entra = local.entra_enabled ? yamlencode({
     apiVersion = "v1"
     kind       = "Config"
     clusters = [{

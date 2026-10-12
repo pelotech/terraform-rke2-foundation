@@ -1,13 +1,12 @@
 locals {
-  oidc_issuer_enabled       = anytrue(values(local.workload_identity_enabled))
-  oidc_storage_account_name = coalesce(var.workload_identity.oidc_storage_account_name, substr("${local.storage_account_name_stem}oidc", 0, 24))
-  oidc_issuer_url           = one(azurerm_storage_account.oidc[*].primary_web_endpoint)
+  oidc_issuer_enabled = var.workload_identity != null
+  oidc_issuer_url     = one(azurerm_storage_account.oidc[*].primary_web_endpoint)
 }
 
 # Serves the discovery document and JWKS Entra reads. The servers upload them after RKE2 starts.
 resource "azurerm_storage_account" "oidc" {
   count                           = local.oidc_issuer_enabled ? 1 : 0
-  name                            = local.oidc_storage_account_name
+  name                            = var.workload_identity.storage_account_name
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"

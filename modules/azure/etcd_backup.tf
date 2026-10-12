@@ -1,12 +1,12 @@
 locals {
-  etcd_backup_enabled       = var.etcd_backup.enabled
+  etcd_backup_enabled       = var.etcd_backup != null
   etcd_backup_container_url = local.etcd_backup_enabled ? "${azurerm_storage_account.etcd_backup[0].primary_blob_endpoint}${azurerm_storage_container.etcd_backup[0].name}" : null
 }
 
 # A private account of its own: the OIDC account is public by design and the blob CSI account belongs to workloads.
 resource "azurerm_storage_account" "etcd_backup" {
   count                           = local.etcd_backup_enabled ? 1 : 0
-  name                            = coalesce(var.etcd_backup.storage_account_name, substr("${local.storage_account_name_stem}etcd", 0, 24))
+  name                            = var.etcd_backup.storage_account_name
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"

@@ -1,13 +1,13 @@
 locals {
   cni_agent_pool = local.cni_node_pool_enabled ? {
     cni = {
-      vm_size         = coalesce(var.cni_node_pool.vm_size, var.servers.vm_size)
-      node_count      = var.cni_node_pool.node_count
+      vm_size         = var.cni.node_pool.vm_size
+      node_count      = var.cni.node_pool.node_count
       min_count       = null
       max_count       = null
-      zones           = var.cni_node_pool.zones != null ? var.cni_node_pool.zones : var.servers.zones
-      os_disk_size_gb = var.cni_node_pool.os_disk_size_gb
-      os_disk_type    = var.cni_node_pool.os_disk_type
+      zones           = var.cni.node_pool.zones
+      os_disk_size_gb = var.cni.node_pool.os_disk_size_gb
+      os_disk_type    = var.cni.node_pool.os_disk_type
       labels          = local.cni_node_pool_labels
       taints          = local.cni_node_pool_taints
     }

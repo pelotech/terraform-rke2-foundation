@@ -1,11 +1,11 @@
 locals {
-  create_blob_storage_account = var.blob_csi.enabled && var.blob_csi.create_storage_account
-  blob_csi_node_subnet_only   = local.create_blob_storage_account && var.blob_csi.network_access == "NodeSubnet"
+  create_blob_storage_account = var.blob_csi != null
+  blob_csi_node_subnet_only   = local.create_blob_storage_account ? var.blob_csi.network_access == "NodeSubnet" : false
 }
 
 resource "azurerm_storage_account" "blob_csi" {
   count                           = local.create_blob_storage_account ? 1 : 0
-  name                            = coalesce(var.blob_csi.storage_account_name, substr("${local.storage_account_name_stem}csi", 0, 24))
+  name                            = var.blob_csi.storage_account_name
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"

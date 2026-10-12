@@ -4,22 +4,26 @@ mock_provider "azurerm" {
   source = "./tests/mocks"
 }
 
-run "off_by_default" {
+run "null_creates_nothing" {
   command = plan
   assert {
     condition     = length(azurerm_storage_account.blob_csi) == 0 && length(azurerm_storage_container.blob_csi) == 0 && !contains(keys(azurerm_role_assignment.agent), "blob_csi")
-    error_message = "no storage account, containers or grant unless blob_csi.enabled"
+    error_message = "no storage account, containers or grant with blob_csi null"
+  }
+  assert {
+    condition     = output.blob_csi_storage_account_id == null && output.blob_csi_storage_account_name == null && length(output.blob_csi_container_names) == 0
+    error_message = "null outputs without blob CSI"
   }
 }
 
-run "enabled_creates_account_containers_and_grant" {
+run "set_creates_account_containers_and_grant" {
   command = plan
   variables {
-    blob_csi = { enabled = true, containers = ["backups", "media"] }
+    blob_csi = { storage_account_name = "acmeplatformdevcsi", containers = ["backups", "media"] }
   }
   assert {
     condition     = azurerm_storage_account.blob_csi[0].name == "acmeplatformdevcsi" && azurerm_storage_account.blob_csi[0].shared_access_key_enabled == false && azurerm_storage_account.blob_csi[0].min_tls_version == "TLS1_2"
-    error_message = "the account name comes from the Owner tag and the cluster name; keys off; TLS 1.2"
+    error_message = "the account carries the given name; keys off; TLS 1.2"
   }
   assert {
     condition     = azurerm_storage_account_network_rules.blob_csi[0].default_action == "Deny" && length(azurerm_storage_account_network_rules.blob_csi[0].virtual_network_subnet_ids) == 1
@@ -42,8 +46,8 @@ run "enabled_creates_account_containers_and_grant" {
 run "public_access_opens_the_account" {
   command = plan
   variables {
-    etcd_backup = { enabled = false }
-    blob_csi    = { enabled = true, network_access = "Public", shared_access_key_enabled = true }
+    etcd_backup = null
+    blob_csi    = { storage_account_name = "acmeplatformdevcsi", network_access = "Public", shared_access_key_enabled = true }
   }
   assert {
     condition     = azurerm_storage_account_network_rules.blob_csi[0].default_action == "Allow" && length(azurerm_storage_account_network_rules.blob_csi[0].virtual_network_subnet_ids) == 0 && azurerm_storage_account.blob_csi[0].shared_access_key_enabled == true

@@ -38,7 +38,7 @@ resource "azurerm_network_interface_backend_address_pool_association" "server_ap
 }
 
 resource "azurerm_network_interface_backend_address_pool_association" "server_api_public" {
-  count                   = var.cluster_endpoint_public_access ? var.servers.count : 0
+  count                   = var.cluster_endpoint.public ? var.servers.count : 0
   network_interface_id    = azurerm_network_interface.server[count.index].id
   ip_configuration_name   = "primary"
   backend_address_pool_id = azurerm_lb_backend_address_pool.api_public[0].id

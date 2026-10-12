@@ -44,11 +44,11 @@ module "stack" {
 | `cluster_endpoint`                             | `cluster_endpoint`                 | `https://<api host>:6443`                                                  |
 | `cluster_ca_certificate`                       | `cluster_ca_certificate`           | base64 PEM of the RKE2 server CA                                           |
 | `admin_client_certificate`, `admin_client_key` | `client_certificate`, `client_key` | base64 PEM, system:masters                                                 |
-| `kube_exec`                                    | `kube_exec`                        | kubelogin block when `entra_oidc` is on, else null                         |
+| `kube_exec`                                    | `kube_exec`                        | kubelogin block when `entra_oidc` is set, else null                        |
 | `cluster_api_host`                             | `k8s_service_host`                 | `127.0.0.1`                                                                |
 | `cluster_api_port`                             | `k8s_service_port`                 | `6443`                                                                     |
-| `cluster_service_cidr`                         | `service_cidr`                     | `service_cidr`                                                             |
-| `cluster_pod_cidr`                             | `pod_cidr`                         | `pod_cidr`                                                                 |
+| `cluster_service_cidr`                         | `service_cidr`                     | `cluster_network.service_cidr`                                             |
+| `cluster_pod_cidr`                             | `pod_cidr`                         | `cluster_network.pod_cidr`                                                 |
 | `cni_node_size`                                | `wait_for_nodes_count`             | server count, or the CNI pool size for kube-ovn                            |
 | `cni_node_selector`                            | `wait_for_nodes_selector`          | `node-role.kubernetes.io/control-plane=true`, or the kube-ovn master label |
 

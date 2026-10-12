@@ -24,7 +24,7 @@ run "contract_values_known_at_plan" {
   }
   assert {
     condition     = output.resource_group_name == "rg-platformdev" && output.node_resource_group_name == "rg-platformdev-nodes" && azurerm_resource_group.this[0].location == "usgovvirginia" && output.region == "usgovvirginia"
-    error_message = "resource groups default to rg-<name> and rg-<name>-nodes in var.location"
+    error_message = "resource groups carry the given names in var.location"
   }
   assert {
     condition     = output.subscription_id == "00000000-0000-0000-0000-000000000002" && output.tenant_id == "00000000-0000-0000-0000-000000000001"
@@ -39,12 +39,11 @@ run "contract_values_known_at_plan" {
 run "existing_resource_group_is_not_created" {
   command = plan
   variables {
-    create_resource_group = false
-    resource_group_name   = "rg-shared"
+    resource_group = { name = "rg-shared", create = false }
   }
   assert {
     condition     = length(azurerm_resource_group.this) == 0 && output.resource_group_name == "rg-shared" && azurerm_key_vault.this.resource_group_name == "rg-shared"
-    error_message = "create_resource_group = false must reuse the named group"
+    error_message = "resource_group.create = false must reuse the named group"
   }
 }
 
@@ -93,7 +92,7 @@ run "every_contract_output_is_populated" {
     error_message = "node and network outputs"
   }
   assert {
-    condition     = output.blob_csi_storage_account_id == null && output.database_subnet_id == null
+    condition     = output.blob_csi_storage_account_id == null
     error_message = "optional resources report null when absent"
   }
 }

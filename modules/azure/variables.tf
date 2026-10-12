@@ -15,7 +15,6 @@ variable "location" {
 
 variable "azure_cloud" {
   type        = string
-  default     = "public"
   description = "Azure cloud: public or usgovernment. It selects the cloud provider environment, the Key Vault audience and the kubelogin environment. Set it to the same cloud as your azurerm provider."
 
   validation {
@@ -24,34 +23,28 @@ variable "azure_cloud" {
   }
 }
 
-variable "resource_group_name" {
-  type        = string
-  default     = null
-  description = "Resource group for the network, Key Vault, identities and load balancers. null generates rg-<name>."
+variable "resource_group" {
+  type = object({
+    name   = string
+    create = bool
+  })
+  nullable    = false
+  description = "Resource group for the network, Key Vault, identities and load balancers. create = false uses the existing group of that name without managing it."
 }
 
-variable "create_resource_group" {
-  type        = bool
-  default     = true
-  description = "Creates the resource group. Set false to use an existing group named resource_group_name."
-}
-
-variable "create_node_resource_group" {
-  type        = bool
-  default     = true
-  description = "Create and manage the node resource group. Set false to look up an existing group without owning its lifecycle."
-}
-
-variable "node_resource_group_name" {
-  type        = string
-  default     = null
-  description = "Resource group for nodes and resources the cloud provider and CSI drivers create. Created by default; reused when create_node_resource_group is false. null generates rg-<name>-nodes."
+variable "node_resource_group" {
+  type = object({
+    name   = string
+    create = bool
+  })
+  nullable    = false
+  description = "Resource group for the nodes and what the cloud provider and CSI drivers create. create = false looks the existing group up without owning its lifecycle. It may be the same group as resource_group."
 }
 
 variable "tags" {
   type        = map(string)
   default     = {}
-  description = "Tags for every resource. The Owner tag, when present, seeds the storage account names."
+  description = "Tags for every resource."
 }
 
 variable "rke2_version" {
@@ -257,90 +250,84 @@ variable "agent_pools" {
 }
 
 variable "cni" {
-  type        = string
-  default     = "cilium"
-  description = "CNI to run: cilium, kube-ovn or canal. cilium and kube-ovn set RKE2 cni none and cni-bootstrap installs the CNI; cilium also turns kube-proxy off. canal is the bundled, FIPS-rebuilt CNI. kube-ovn also creates the CNI node pool."
-
-  validation {
-    condition     = contains(keys(local.cni_profiles), var.cni)
-    error_message = "cni must be one of: cilium, kube-ovn, canal."
-  }
-}
-
-variable "cni_node_pool" {
   type = object({
-    enabled         = optional(bool, true)
-    vm_size         = optional(string)
-    zones           = optional(list(string))
-    node_count      = optional(number, 1)
-    os_disk_size_gb = optional(number, 100)
-    os_disk_type    = optional(string, "Premium_LRS")
+    name = string
+    node_pool = optional(object({
+      vm_size         = string
+      zones           = optional(list(string), ["1", "2", "3"])
+      node_count      = optional(number, 1)
+      os_disk_size_gb = optional(number, 100)
+      os_disk_type    = optional(string, "Premium_LRS")
+    }))
   })
-  default     = {}
   nullable    = false
-  description = "Dedicated CNI pool, created for kube-ovn as the scale set named cni. vm_size and zones default to the servers'. Set enabled = false, then true, to recycle the pool."
+  description = "name is the CNI to run: cilium, kube-ovn or canal. cilium and kube-ovn set RKE2 cni none and cni-bootstrap installs the CNI; cilium also turns kube-proxy off. canal is the bundled, FIPS-rebuilt CNI. node_pool is the dedicated pool kube-ovn's control plane runs on, the scale set named cni: required for kube-ovn, absent for the others. To recycle it, replace the scale set with terraform apply -replace."
 
   validation {
-    condition     = var.cni_node_pool.node_count >= 1
-    error_message = "cni_node_pool.node_count must be at least 1."
+    condition     = contains(keys(local.cni_profiles), var.cni.name)
+    error_message = "cni.name must be one of: cilium, kube-ovn, canal."
   }
   validation {
-    condition     = contains(local.os_disk_types, var.cni_node_pool.os_disk_type)
-    error_message = "cni_node_pool.os_disk_type must be one of: Standard_LRS, StandardSSD_LRS, Premium_LRS, StandardSSD_ZRS, Premium_ZRS."
+    condition     = (var.cni.name == "kube-ovn") == (var.cni.node_pool != null)
+    error_message = "cni.node_pool is required for kube-ovn and must be absent for cilium and canal."
   }
   validation {
-    condition     = var.cni_node_pool.vm_size == null || !startswith(var.cni_node_pool.os_disk_type, "Premium") || can(regex(local.premium_capable_size, var.cni_node_pool.vm_size))
-    error_message = "cni_node_pool.vm_size does not support Premium disks: pick a size with an s in its suffix, such as Standard_D4s_v5, or set os_disk_type to StandardSSD_LRS."
+    condition     = var.cni.node_pool == null ? true : var.cni.node_pool.node_count >= 1
+    error_message = "cni.node_pool.node_count must be at least 1."
+  }
+  validation {
+    condition     = var.cni.node_pool == null ? true : contains(local.os_disk_types, var.cni.node_pool.os_disk_type)
+    error_message = "cni.node_pool.os_disk_type must be one of: Standard_LRS, StandardSSD_LRS, Premium_LRS, StandardSSD_ZRS, Premium_ZRS."
+  }
+  validation {
+    condition     = var.cni.node_pool == null ? true : !startswith(var.cni.node_pool.os_disk_type, "Premium") || can(regex(local.premium_capable_size, var.cni.node_pool.vm_size))
+    error_message = "cni.node_pool.vm_size does not support Premium disks: pick a size with an s in its suffix, such as Standard_D4s_v5, or set os_disk_type to StandardSSD_LRS."
   }
 }
 
-variable "vnet" {
+variable "network" {
   type = object({
-    cidr                 = optional(string, "10.0.0.0/16")
-    node_subnet_cidr     = optional(string, "10.0.0.0/22")
-    database_subnet_cidr = optional(string)
-    service_endpoints    = optional(list(string), [])
+    create = optional(object({
+      address_space     = optional(string, "10.0.0.0/16")
+      node_subnet       = optional(string, "10.0.0.0/22")
+      service_endpoints = optional(list(string), [])
+      nat_gateway = optional(object({
+        public_ip_count      = optional(number, 1)
+        idle_timeout_minutes = optional(number, 4)
+      }), {})
+    }))
+    existing = optional(object({
+      vnet_id        = string
+      node_subnet_id = string
+      api_private_ip = optional(string)
+    }))
   })
-  default     = {}
   nullable    = false
-  description = "VNet the module creates; ignored when existing_vnet is set. Size node_subnet_cidr for the maximum node count plus private endpoints. The API load balancer takes the subnet's last usable address."
-}
-
-variable "existing_vnet" {
-  type = object({
-    vnet_id        = string
-    node_subnet_id = string
-    api_private_ip = optional(string)
-  })
-  default     = null
-  description = "Use an existing VNet and node subnet. The module then creates no network and no NAT Gateway, so the subnet must provide egress. api_private_ip is the static address of the API load balancer; null lets Azure pick one."
+  description = "Exactly one of create or existing. create builds a VNet with address_space, a node subnet of node_subnet for every VM, the API private address and private endpoints, and a NAT Gateway for egress. existing joins the given VNet and node subnet, creates no network and no NAT Gateway, so the subnet must provide egress; api_private_ip is the static address of the API load balancer, null lets Azure pick one."
 
   validation {
-    condition     = var.existing_vnet == null ? true : can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/virtualNetworks/[^/]+/subnets/[^/]+$", var.existing_vnet.node_subnet_id))
-    error_message = "existing_vnet.node_subnet_id must be a subnet resource id: /subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>."
+    condition     = (var.network.create == null) != (var.network.existing == null)
+    error_message = "network needs exactly one of create or existing."
   }
   validation {
-    condition     = var.existing_vnet == null || try(var.existing_vnet.api_private_ip, null) == null ? true : can(cidrhost("${var.existing_vnet.api_private_ip}/32", 0))
-    error_message = "existing_vnet.api_private_ip must be an IPv4 address without a prefix length."
-  }
-}
-
-variable "nat_gateway" {
-  type = object({
-    public_ip_count      = optional(number, 1)
-    idle_timeout_minutes = optional(number, 4)
-  })
-  default     = {}
-  nullable    = false
-  description = "NAT Gateway for node egress, created whenever the module creates the VNet."
-
-  validation {
-    condition     = var.nat_gateway.public_ip_count >= 1 && var.nat_gateway.public_ip_count <= 16
-    error_message = "nat_gateway.public_ip_count must be between 1 and 16."
+    condition     = var.network.existing == null ? true : can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/virtualNetworks/[^/]+/subnets/[^/]+$", var.network.existing.node_subnet_id))
+    error_message = "network.existing.node_subnet_id must be a subnet resource id: /subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>."
   }
   validation {
-    condition     = var.nat_gateway.idle_timeout_minutes >= 4 && var.nat_gateway.idle_timeout_minutes <= 120
-    error_message = "nat_gateway.idle_timeout_minutes must be between 4 and 120."
+    condition     = var.network.existing == null || try(var.network.existing.api_private_ip, null) == null ? true : can(cidrhost("${var.network.existing.api_private_ip}/32", 0))
+    error_message = "network.existing.api_private_ip must be an IPv4 address without a prefix length."
+  }
+  validation {
+    condition     = var.network.create == null ? true : can(cidrhost(var.network.create.address_space, 0)) && can(cidrhost(var.network.create.node_subnet, 0))
+    error_message = "network.create.address_space and network.create.node_subnet must be IPv4 CIDRs."
+  }
+  validation {
+    condition     = var.network.create == null ? true : var.network.create.nat_gateway.public_ip_count >= 1 && var.network.create.nat_gateway.public_ip_count <= 16
+    error_message = "network.create.nat_gateway.public_ip_count must be between 1 and 16."
+  }
+  validation {
+    condition     = var.network.create == null ? true : var.network.create.nat_gateway.idle_timeout_minutes >= 4 && var.network.create.nat_gateway.idle_timeout_minutes <= 120
+    error_message = "network.create.nat_gateway.idle_timeout_minutes must be between 4 and 120."
   }
 }
 
@@ -355,95 +342,74 @@ variable "private_endpoints" {
   description = "Private endpoints in the node subnet, one for each target resource. You select the key names. Example subresource_names: [\"blob\"], [\"vault\"], [\"registry\"]."
 }
 
-variable "service_cidr" {
-  type        = string
-  default     = "10.96.0.0/16"
-  description = "Kubernetes service CIDR, with a prefix longer than /12. It must not overlap the VNet or pod_cidr."
+variable "cluster_network" {
+  type = object({
+    service_cidr   = optional(string, "10.96.0.0/16")
+    pod_cidr       = optional(string, "10.244.0.0/16")
+    dns_service_ip = optional(string)
+  })
+  default     = {}
+  nullable    = false
+  description = "Kubernetes-internal ranges, virtual and never routed in Azure. service_cidr is the ClusterIP range, with a prefix longer than /12; pod_cidr is the RKE2 cluster-cidr the CNI hands to pods. Neither may overlap the other or the VNet. dns_service_ip is the cluster DNS address inside service_cidr, the tenth address by default."
 
   validation {
-    condition     = can(cidrhost(var.service_cidr, 0)) && tonumber(split("/", var.service_cidr)[1]) > 12
-    error_message = "service_cidr must be a valid IPv4 CIDR with a prefix longer than /12."
+    condition     = can(cidrhost(var.cluster_network.service_cidr, 0)) && tonumber(split("/", var.cluster_network.service_cidr)[1]) > 12
+    error_message = "cluster_network.service_cidr must be a valid IPv4 CIDR with a prefix longer than /12."
   }
   validation {
-    # Two CIDRs overlap when one contains the other's network address. Malformed input is left to the format check.
-    condition = !anytrue([for other in local.service_cidr_must_avoid : try(
-      cidrhost("${cidrhost(var.service_cidr, 0)}/${split("/", other)[1]}", 0) == cidrhost(other, 0) ||
-      cidrhost("${cidrhost(other, 0)}/${split("/", var.service_cidr)[1]}", 0) == cidrhost(var.service_cidr, 0),
+    condition     = can(cidrhost(var.cluster_network.pod_cidr, 0))
+    error_message = "cluster_network.pod_cidr must be a valid IPv4 CIDR."
+  }
+  validation {
+    # Two CIDRs overlap when one contains the other's network address. Malformed input is left to the format checks.
+    condition = !anytrue([for pair in concat(
+      [[var.cluster_network.pod_cidr, var.cluster_network.service_cidr]],
+      local.vnet_address_space == null ? [] : [[var.cluster_network.pod_cidr, local.vnet_address_space], [var.cluster_network.service_cidr, local.vnet_address_space]],
+      ) : try(
+      cidrhost("${cidrhost(pair[0], 0)}/${split("/", pair[1])[1]}", 0) == cidrhost(pair[1], 0) ||
+      cidrhost("${cidrhost(pair[1], 0)}/${split("/", pair[0])[1]}", 0) == cidrhost(pair[0], 0),
       false,
     )])
-    error_message = "service_cidr must not overlap vnet.cidr."
+    error_message = "cluster_network.pod_cidr and cluster_network.service_cidr must not overlap each other or network.create.address_space."
+  }
+  validation {
+    condition     = var.cluster_network.dns_service_ip == null ? true : (cidrhost("${var.cluster_network.dns_service_ip}/${split("/", var.cluster_network.service_cidr)[1]}", 0) == cidrhost(var.cluster_network.service_cidr, 0) && var.cluster_network.dns_service_ip != cidrhost(var.cluster_network.service_cidr, 1))
+    error_message = "cluster_network.dns_service_ip must be inside service_cidr and must not be its first address, which Kubernetes reserves for the kubernetes service."
   }
 }
 
-variable "dns_service_ip" {
-  type        = string
-  default     = null
-  description = "Cluster DNS service IP inside service_cidr. null uses the tenth address."
+variable "cluster_endpoint" {
+  type = object({
+    public               = bool
+    authorized_ip_ranges = optional(list(string), [])
+    dns_label            = optional(string)
+  })
+  nullable    = false
+  description = "public adds a public load balancer in front of the API server, reachable only from authorized_ip_ranges, which is then required. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap. dns_label names the public address, unique per region; null generates <name>-<hash>."
 
   validation {
-    condition     = var.dns_service_ip == null ? true : (cidrhost("${var.dns_service_ip}/${split("/", var.service_cidr)[1]}", 0) == cidrhost(var.service_cidr, 0) && var.dns_service_ip != cidrhost(var.service_cidr, 1))
-    error_message = "dns_service_ip must be inside service_cidr and must not be its first address, which Kubernetes reserves for the kubernetes service."
-  }
-}
-
-variable "pod_cidr" {
-  type        = string
-  default     = "10.244.0.0/16"
-  description = "Pod CIDR, the RKE2 cluster-cidr. Pass the cluster_pod_cidr output to cni-bootstrap so the CNI uses the same range."
-
-  validation {
-    condition     = can(cidrhost(var.pod_cidr, 0))
-    error_message = "pod_cidr must be a valid IPv4 CIDR."
+    condition     = var.cluster_endpoint.public == (length(var.cluster_endpoint.authorized_ip_ranges) > 0)
+    error_message = "cluster_endpoint.authorized_ip_ranges must list at least one CIDR for a public endpoint and must be empty for a private one."
   }
   validation {
-    # One shared local would cycle through the other variable's validation, so the check is written per variable.
-    condition = !anytrue([for other in local.pod_cidr_must_avoid : try(
-      cidrhost("${cidrhost(var.pod_cidr, 0)}/${split("/", other)[1]}", 0) == cidrhost(other, 0) ||
-      cidrhost("${cidrhost(other, 0)}/${split("/", var.pod_cidr)[1]}", 0) == cidrhost(var.pod_cidr, 0),
-      false,
-    )])
-    error_message = "pod_cidr must not overlap vnet.cidr or service_cidr."
-  }
-}
-
-variable "cluster_endpoint_public_access" {
-  type        = bool
-  default     = true
-  description = "Adds a public load balancer in front of the API server. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap."
-}
-
-variable "cluster_endpoint_authorized_ip_ranges" {
-  type        = list(string)
-  default     = []
-  description = "CIDRs allowed to reach the public API server. Empty allows all."
-
-  validation {
-    condition     = length(var.cluster_endpoint_authorized_ip_ranges) == 0 || var.cluster_endpoint_public_access
-    error_message = "cluster_endpoint_authorized_ip_ranges only applies to a public API server. Unset it or set cluster_endpoint_public_access = true."
-  }
-}
-
-variable "cluster_endpoint_dns_label" {
-  type        = string
-  default     = null
-  description = "DNS label of the public API address, unique per region. null generates <name>-<hash>."
-
-  validation {
-    condition     = var.cluster_endpoint_dns_label == null ? true : can(regex("^[a-z][a-z0-9-]{1,61}[a-z0-9]$", var.cluster_endpoint_dns_label))
-    error_message = "cluster_endpoint_dns_label must be 3-63 lowercase letters, digits and hyphens, starting with a letter and ending with a letter or digit."
+    condition     = var.cluster_endpoint.dns_label == null ? true : can(regex("^[a-z][a-z0-9-]{1,61}[a-z0-9]$", var.cluster_endpoint.dns_label))
+    error_message = "cluster_endpoint.dns_label must be 3-63 lowercase letters, digits and hyphens, starting with a letter and ending with a letter or digit."
   }
 }
 
 variable "key_vault" {
   type = object({
+    admin_object_ids = list(string)
     name             = optional(string)
     network_access   = optional(string, "Public")
-    admin_object_ids = optional(list(string), [])
   })
-  default     = {}
   nullable    = false
-  description = "Key Vault holding the join tokens, the CA set and the generated SSH key. Put the principal that applies the module in admin_object_ids: it writes the secrets. After a destroy, Azure keeps the vault soft-deleted for 90 days, and the next apply recovers it with its secrets."
+  description = "Key Vault holding the join tokens, the CA set and the generated SSH key. admin_object_ids must include the principal that applies the module: it writes the secrets. After a destroy, Azure keeps the vault soft-deleted for 90 days, and the next apply recovers it with its secrets."
 
+  validation {
+    condition     = length(var.key_vault.admin_object_ids) > 0
+    error_message = "key_vault.admin_object_ids must include the principal that applies the module: it writes the secrets."
+  }
   validation {
     condition     = contains(["Public", "Private"], var.key_vault.network_access)
     error_message = "key_vault.network_access must be one of: Public, Private."
@@ -463,25 +429,22 @@ variable "secrets_encryption" {
 
 variable "etcd_backup" {
   type = object({
-    enabled              = optional(bool, true)
+    storage_account_name = string
     retention_days       = optional(number, 30)
     replication_type     = optional(string, "LRS")
-    storage_account_name = optional(string)
   })
-  default     = {}
-  nullable    = false
-  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, with the server identity, under <name>/<server>/<file>. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. Only the node subnet reaches the account; with existing_vnet, that subnet needs the Microsoft.Storage service endpoint. The account name derives from tags.Owner and name unless storage_account_name is set."
+  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage_account_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. Only the node subnet reaches the account; with network.existing, that subnet needs the Microsoft.Storage service endpoint."
 
   validation {
-    condition     = var.etcd_backup.retention_days >= 1 && var.etcd_backup.retention_days <= 365
+    condition     = var.etcd_backup == null ? true : var.etcd_backup.retention_days >= 1 && var.etcd_backup.retention_days <= 365
     error_message = "etcd_backup.retention_days must be between 1 and 365."
   }
   validation {
-    condition     = contains(["LRS", "ZRS", "GRS", "GZRS"], var.etcd_backup.replication_type)
+    condition     = var.etcd_backup == null ? true : contains(["LRS", "ZRS", "GRS", "GZRS"], var.etcd_backup.replication_type)
     error_message = "etcd_backup.replication_type must be LRS, ZRS, GRS or GZRS."
   }
   validation {
-    condition     = var.etcd_backup.storage_account_name == null ? true : can(regex("^[a-z0-9]{3,24}$", var.etcd_backup.storage_account_name))
+    condition     = var.etcd_backup == null ? true : can(regex("^[a-z0-9]{3,24}$", var.etcd_backup.storage_account_name))
     error_message = "etcd_backup.storage_account_name must be 3-24 lowercase letters and digits."
   }
 }
@@ -573,87 +536,63 @@ variable "extra_agent_config" {
 
 variable "workload_identity" {
   type = object({
-    enabled                   = optional(bool, true)
-    oidc_storage_account_name = optional(string)
-    overrides = optional(object({
-      external_dns = optional(object({
-        enabled      = optional(bool)
-        dns_zone_ids = optional(list(string), [])
-      }), {})
-      cert_manager = optional(object({
-        enabled      = optional(bool)
-        dns_zone_ids = optional(list(string), [])
-      }), {})
-    }), {})
+    storage_account_name = string
+    external_dns         = optional(object({ dns_zone_ids = optional(list(string), []) }))
+    cert_manager         = optional(object({ dns_zone_ids = optional(list(string), []) }))
   })
-  default     = {}
-  nullable    = false
-  description = "Workload identities for external_dns and cert_manager, and the storage account that publishes the cluster's OIDC issuer. Set overrides.<identity>.enabled to turn one on or off. Set dns_zone_ids to grant it DNS Zone Contributor on those zones."
+  description = "The cluster's OIDC issuer for Microsoft Entra Workload ID, published from the static website of the storage account named storage_account_name, and one Entra identity per controller listed: external_dns and cert_manager, each with the DNS zones it gets DNS Zone Contributor on. null creates no issuer and no identity. Set it at the first apply when workloads will ever need it: turning the issuer on later changes the service account issuer and replaces every server."
 
   validation {
-    condition     = var.workload_identity.oidc_storage_account_name == null ? true : can(regex("^[a-z0-9]{3,24}$", var.workload_identity.oidc_storage_account_name))
-    error_message = "workload_identity.oidc_storage_account_name must be 3-24 lowercase letters and digits."
+    condition     = var.workload_identity == null ? true : can(regex("^[a-z0-9]{3,24}$", var.workload_identity.storage_account_name))
+    error_message = "workload_identity.storage_account_name must be 3-24 lowercase letters and digits."
   }
 }
 
 variable "blob_csi" {
   type = object({
-    enabled                   = optional(bool, false)
-    create_storage_account    = optional(bool, true)
-    storage_account_name      = optional(string)
+    storage_account_name      = string
     containers                = optional(list(string), [])
     network_access            = optional(string, "NodeSubnet")
     extra_subnet_ids          = optional(list(string), [])
     shared_access_key_enabled = optional(bool, false)
   })
-  default     = {}
-  nullable    = false
-  description = "Blob storage for the blob CSI driver. Default: off. The module creates the storage account, the agent identity grant and the private containers. The README section \"Storage\" explains each field."
+  description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. The README section \"Storage\" explains each field."
 
   validation {
-    condition     = contains(["NodeSubnet", "Public"], var.blob_csi.network_access)
+    condition     = var.blob_csi == null ? true : contains(["NodeSubnet", "Public"], var.blob_csi.network_access)
     error_message = "blob_csi.network_access must be one of: NodeSubnet, Public."
   }
   validation {
-    condition     = var.blob_csi.storage_account_name == null ? true : can(regex("^[a-z0-9]{3,24}$", var.blob_csi.storage_account_name))
+    condition     = var.blob_csi == null ? true : can(regex("^[a-z0-9]{3,24}$", var.blob_csi.storage_account_name))
     error_message = "blob_csi.storage_account_name must be 3-24 lowercase letters and digits."
   }
   validation {
-    condition     = alltrue([for name in var.blob_csi.containers : can(regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", name))])
+    condition     = var.blob_csi == null ? true : alltrue([for name in var.blob_csi.containers : can(regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", name))])
     error_message = "blob_csi.containers names must be 3-63 lowercase letters, digits and hyphens, starting and ending with a letter or digit."
   }
 }
 
 variable "entra_oidc" {
   type = object({
-    enabled                = optional(bool, false)
-    client_id              = optional(string)
+    client_id              = string
+    login_mode             = string
+    admin_group_object_ids = optional(list(string), [])
+    admin_object_ids       = optional(list(string), [])
+    reader_object_ids      = optional(list(string), [])
     issuer_url             = optional(string)
     username_claim         = optional(string, "oid")
     groups_claim           = optional(string, "groups")
     username_prefix        = optional(string)
-    admin_group_object_ids = optional(list(string), [])
-    admin_object_ids       = optional(list(string), [])
-    reader_object_ids      = optional(list(string), [])
   })
-  default     = {}
-  nullable    = false
-  description = "Microsoft Entra ID as the API server's OIDC provider, for kubectl through kubelogin. client_id is an app registration you own, with token version 2 and group claims; issuer_url defaults to the tenant's v2 endpoint in azure_cloud. The username claim is oid, present in user and service principal tokens alike. Servers apply a ClusterRoleBinding to cluster-admin for admin_group_object_ids and admin_object_ids, and read-only bindings for reader_object_ids, before the first node joins. The README section \"Access\" lists what the app registration needs."
+  description = "Microsoft Entra ID as the API server's OIDC provider, for kubectl through kubelogin. null keeps the admin client certificate as the only credential. client_id is an app registration you own, with token version 2 and group claims; issuer_url defaults to the tenant's v2 endpoint in azure_cloud. login_mode is the kubelogin --login mode in kube_exec: azurecli reuses your az session; spn, msi, workloadidentity or azurepipelines in CI. The username claim is oid, present in user and service principal tokens alike. Servers apply a ClusterRoleBinding to cluster-admin for admin_group_object_ids and admin_object_ids, and read-only bindings for reader_object_ids, before the first node joins. The principal that applies the module must be in an admin list: it installs the CNI through kube_exec. The README section \"Access\" lists what the app registration needs."
 
   validation {
-    condition     = !var.entra_oidc.enabled || var.entra_oidc.client_id != null
-    error_message = "entra_oidc.client_id is required when entra_oidc.enabled is true."
+    condition     = var.entra_oidc == null ? true : length(concat(var.entra_oidc.admin_group_object_ids, var.entra_oidc.admin_object_ids)) > 0
+    error_message = "entra_oidc needs at least one admin subject in admin_group_object_ids or admin_object_ids: Terraform signs in through Entra and must be cluster-admin."
   }
-}
-
-variable "kube_exec_login_mode" {
-  type        = string
-  default     = "azurecli"
-  description = "kubelogin --login mode in kube_exec, used with entra_oidc. azurecli reuses your az session; use spn, msi or workloadidentity in CI."
-
   validation {
-    condition     = contains(["devicecode", "interactive", "spn", "ropc", "msi", "azurecli", "azd", "workloadidentity", "azurepipelines"], var.kube_exec_login_mode)
-    error_message = "kube_exec_login_mode must be a kubelogin login mode: devicecode, interactive, spn, ropc, msi, azurecli, azd, workloadidentity, azurepipelines."
+    condition     = var.entra_oidc == null ? true : contains(["devicecode", "interactive", "spn", "ropc", "msi", "azurecli", "azd", "workloadidentity", "azurepipelines"], var.entra_oidc.login_mode)
+    error_message = "entra_oidc.login_mode must be a kubelogin login mode: devicecode, interactive, spn, ropc, msi, azurecli, azd, workloadidentity, azurepipelines."
   }
 }
 

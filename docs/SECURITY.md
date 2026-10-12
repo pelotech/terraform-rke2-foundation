@@ -28,7 +28,7 @@ with a network policy from the GitOps layer.
 
 | Port | Listener                  | Reachable from                                             |
 | ---- | ------------------------- | ---------------------------------------------------------- |
-| 6443 | API server                | the VNet, and the internet or `cluster_endpoint_authorized_ip_ranges` with a public endpoint |
+| 6443 | API server                | the VNet, and `cluster_endpoint.authorized_ip_ranges` with a public endpoint |
 | 9345 | RKE2 supervisor           | the VNet only                                              |
 | 2379 | etcd                      | the VNet only; Azure's default rules allow VNet traffic    |
 | 22   | SSH                       | the VNet only; there is no public IP on a node             |
@@ -39,8 +39,8 @@ Egress goes through the NAT Gateway. `nat_gateway_public_ips` lists its addresse
 
 | Input                            | Effect                                                                 |
 | -------------------------------- | ---------------------------------------------------------------------- |
-| `cluster_endpoint_public_access = false` | No public load balancer. Apply from inside the VNet.           |
-| `cluster_endpoint_authorized_ip_ranges` | Limits the public API server to those CIDRs.                    |
+| `cluster_endpoint.public = false` | No public load balancer. Apply from inside the VNet.                  |
+| `cluster_endpoint.authorized_ip_ranges` | Required with a public endpoint: only those CIDRs reach the API server. |
 | `secrets_encryption`, on by default | Encrypts Secrets at rest in etcd.                                   |
 | `cis_profile`                    | Runs RKE2 with `profile: cis` and prepares the host for it.            |
 | `image`                          | A FIPS marketplace image, with its purchase plan in `image.plan`. The module takes no gallery image yet. |

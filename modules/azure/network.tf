@@ -1,17 +1,14 @@
 locals {
-  create_vnet    = var.existing_vnet == null
-  node_subnet_id = local.create_vnet ? azurerm_subnet.nodes[0].id : var.existing_vnet.node_subnet_id
+  create_vnet        = var.network.create != null
+  vnet_address_space = local.create_vnet ? var.network.create.address_space : null
+  node_subnet_id     = local.create_vnet ? azurerm_subnet.nodes[0].id : var.network.existing.node_subnet_id
   # The last usable address: dynamic allocation starts at the bottom of the subnet and would take a low one first.
-  api_private_ip = local.create_vnet ? cidrhost(var.vnet.node_subnet_cidr, -2) : var.existing_vnet.api_private_ip
+  api_private_ip = local.create_vnet ? cidrhost(var.network.create.node_subnet, -2) : var.network.existing.api_private_ip
 
-  existing_subnet          = local.create_vnet ? null : provider::azurerm::parse_resource_id(var.existing_vnet.node_subnet_id)
+  existing_subnet          = local.create_vnet ? null : provider::azurerm::parse_resource_id(var.network.existing.node_subnet_id)
   vnet_name                = local.create_vnet ? azurerm_virtual_network.this[0].name : local.existing_subnet.parent_resources["virtualNetworks"]
   vnet_resource_group_name = local.create_vnet ? local.resource_group_name : local.existing_subnet.resource_group_name
   node_subnet_name         = local.create_vnet ? azurerm_subnet.nodes[0].name : local.existing_subnet.resource_name
-
-  # CIDRs each variable must not overlap; the VNet counts only when the module creates it.
-  pod_cidr_must_avoid     = concat([var.service_cidr], local.create_vnet ? [var.vnet.cidr] : [])
-  service_cidr_must_avoid = local.create_vnet ? [var.vnet.cidr] : []
 }
 
 resource "azurerm_virtual_network" "this" {
@@ -19,7 +16,7 @@ resource "azurerm_virtual_network" "this" {
   name                = "vnet-${var.name}"
   location            = var.location
   resource_group_name = local.resource_group_name
-  address_space       = [var.vnet.cidr]
+  address_space       = [var.network.create.address_space]
   tags                = var.tags
 }
 
@@ -28,29 +25,20 @@ resource "azurerm_subnet" "nodes" {
   name                 = "snet-${var.name}-nodes"
   resource_group_name  = local.resource_group_name
   virtual_network_name = azurerm_virtual_network.this[0].name
-  address_prefixes     = [var.vnet.node_subnet_cidr]
+  address_prefixes     = [var.network.create.node_subnet]
   # Egress is the NAT Gateway, never Azure's implicit default outbound.
   default_outbound_access_enabled = false
 
   dynamic "service_endpoint" {
-    for_each = toset(concat(var.vnet.service_endpoints, local.blob_csi_node_subnet_only || local.etcd_backup_enabled ? ["Microsoft.Storage"] : []))
+    for_each = toset(concat(var.network.create.service_endpoints, local.blob_csi_node_subnet_only || local.etcd_backup_enabled ? ["Microsoft.Storage"] : []))
     content {
       service = service_endpoint.value
     }
   }
 }
 
-resource "azurerm_subnet" "database" {
-  count                           = local.create_vnet && var.vnet.database_subnet_cidr != null ? 1 : 0
-  name                            = "snet-${var.name}-database"
-  resource_group_name             = local.resource_group_name
-  virtual_network_name            = azurerm_virtual_network.this[0].name
-  address_prefixes                = [var.vnet.database_subnet_cidr]
-  default_outbound_access_enabled = false
-}
-
 resource "azurerm_public_ip" "nat" {
-  count               = local.create_vnet ? var.nat_gateway.public_ip_count : 0
+  count               = local.create_vnet ? var.network.create.nat_gateway.public_ip_count : 0
   name                = "pip-${var.name}-nat-${count.index}"
   location            = var.location
   resource_group_name = local.resource_group_name
@@ -67,12 +55,12 @@ resource "azurerm_nat_gateway" "this" {
   location                = var.location
   resource_group_name     = local.resource_group_name
   sku_name                = "Standard"
-  idle_timeout_in_minutes = var.nat_gateway.idle_timeout_minutes
+  idle_timeout_in_minutes = var.network.create.nat_gateway.idle_timeout_minutes
   tags                    = var.tags
 }
 
 resource "azurerm_nat_gateway_public_ip_association" "nat" {
-  count                = local.create_vnet ? var.nat_gateway.public_ip_count : 0
+  count                = local.create_vnet ? var.network.create.nat_gateway.public_ip_count : 0
   nat_gateway_id       = azurerm_nat_gateway.this[0].id
   public_ip_address_id = azurerm_public_ip.nat[count.index].id
 }

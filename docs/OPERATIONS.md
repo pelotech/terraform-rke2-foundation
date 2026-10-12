@@ -4,7 +4,7 @@ Each procedure below is complete on its own. `module.stack` is the name of the m
 
 ## Get access
 
-1. With `entra_oidc` on, write `terraform output -raw kubeconfig_entra > kubeconfig`, which holds no secret,
+1. With `entra_oidc` set, write `terraform output -raw kubeconfig_entra > kubeconfig`, which holds no secret,
    and sign in with `az login`; kubelogin fetches the token. Without it, write the admin kubeconfig with mode
    0600, it holds the cluster-admin key: `(umask 077 && terraform output -raw kubeconfig > kubeconfig)`.
 2. Set `KUBECONFIG` to that file. The certificate is valid for one year. Terraform renews it thirty days
@@ -79,19 +79,18 @@ To replace a pool instead, for example to rename it:
 
 ## Recycle the kube-ovn pool
 
-1. Set `cni_node_pool.enabled = false`. Apply.
-2. Set `cni_node_pool.enabled = true`. Raise `bootstrap_generation` on cni-bootstrap.
-3. Apply. kube-ovn then reads the new `cni` pool node.
+1. Replace the scale set: `terraform apply -replace='module.stack.azurerm_linux_virtual_machine_scale_set.agent["cni"]'`.
+2. Raise `bootstrap_generation` on cni-bootstrap. Apply. kube-ovn then reads the new `cni` pool node.
 
 ## Back up etcd
 
 RKE2 writes an etcd snapshot every 12 hours to `/var/lib/rancher/rke2/server/db/snapshots` on each server
-node and keeps the last five, on the etcd data disk of the node. With `etcd_backup.enabled = true`, the
-default, each server node runs `rke2-foundation-snapshots.timer`. The timer runs every hour and uploads each
+node and keeps the last five, on the etcd data disk of the node. With `etcd_backup` set, each server node
+runs `rke2-foundation-snapshots.timer`. The timer runs every hour and uploads each
 snapshot that is at least two minutes old, with the server identity. A marker per uploaded file makes the
 other runs upload nothing, so a snapshot that RKE2 writes every 12 hours goes up once. The target is the container
-`etcd-snapshots` of a private storage account. The account name comes from `tags.Owner`, the cluster name
-and `etcd`. The blob path is `<name>/<server>/<file>`. The account keeps blob versions and soft-deleted
+`etcd-snapshots` of the private storage account named `etcd_backup.storage_account_name`. The blob path is
+`<name>/<server>/<file>`. The account keeps blob versions and soft-deleted
 blobs for `retention_days`, 30 by default, and a lifecycle rule deletes older snapshots. Only the node
 subnet reaches the account. RKE2 itself uploads to S3-compatible storage only.
 

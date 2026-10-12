@@ -1,10 +1,10 @@
 name                       = "rke2-dev"
 location                   = "usgovvirginia"
 azure_cloud                = "usgovernment"
-cni                        = "kube-ovn"
+cni                        = { name = "kube-ovn", node_pool = { vm_size = "Standard_D4s_v5" } }
 server_vm_size             = "Standard_D4s_v5"
 agent_vm_size              = "Standard_D4s_v5"
-cni_vm_size                = "Standard_D4s_v5"
+storage_account_prefix     = "pelotechrke2dev"
 authorized_ip_ranges       = ["203.0.113.4/32"]
 key_vault_admin_object_ids = ["00000000-0000-0000-0000-000000000000"]
 tags                       = { Owner = "pelotech", Environment = "dev" }

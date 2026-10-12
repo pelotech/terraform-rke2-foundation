@@ -15,8 +15,8 @@ run "key_vault_defaults" {
     error_message = "key_vault.network_access Public keeps the vault reachable from the nodes"
   }
   assert {
-    condition     = length(azurerm_role_assignment.key_vault_admin) == 0
-    error_message = "no Secrets Officer grants unless admin_object_ids lists principals"
+    condition     = length(azurerm_role_assignment.key_vault_admin) == 1 && azurerm_role_assignment.key_vault_admin["00000000-0000-0000-0000-000000000003"].role_definition_name == "Key Vault Secrets Officer"
+    error_message = "the applying principal in key_vault.admin_object_ids gets Secrets Officer, which writing the secrets needs"
   }
 }
 

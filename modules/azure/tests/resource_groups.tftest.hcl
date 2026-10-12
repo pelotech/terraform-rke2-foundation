@@ -13,10 +13,8 @@ mock_provider "azurerm" {
 run "reuse_customer_group" {
   command = plan
   variables {
-    create_resource_group      = false
-    create_node_resource_group = false
-    resource_group_name        = "rg-customer-nodes"
-    node_resource_group_name   = "rg-customer-nodes"
+    resource_group      = { name = "rg-customer-nodes", create = false }
+    node_resource_group = { name = "rg-customer-nodes", create = false }
   }
   assert {
     condition     = length(azurerm_resource_group.this) == 0 && length(azurerm_resource_group.nodes) == 0
@@ -35,8 +33,7 @@ run "reuse_customer_group" {
 run "reuse_separate_node_group" {
   command = plan
   variables {
-    create_node_resource_group = false
-    node_resource_group_name   = "rg-customer-nodes"
+    node_resource_group = { name = "rg-customer-nodes", create = false }
   }
   assert {
     condition     = length(azurerm_resource_group.this) == 1 && length(azurerm_resource_group.nodes) == 0 && output.resource_group_name == "rg-platformdev" && output.node_resource_group_name == "rg-customer-nodes"
@@ -44,10 +41,14 @@ run "reuse_separate_node_group" {
   }
 }
 
-run "default_keeps_node_group_owned" {
+run "created_groups_carry_the_given_names" {
   command = plan
   assert {
-    condition     = length(azurerm_resource_group.nodes) == 1 && output.node_resource_group_name == "rg-platformdev-nodes"
-    error_message = "Existing consumers must retain ownership of their node group by default."
+    condition     = length(azurerm_resource_group.this) == 1 && azurerm_resource_group.this[0].name == "rg-platformdev" && length(azurerm_resource_group.nodes) == 1 && azurerm_resource_group.nodes[0].name == "rg-platformdev-nodes"
+    error_message = "resource_group.name and node_resource_group.name are the names, nothing is generated"
+  }
+  assert {
+    condition     = output.resource_group_name == "rg-platformdev" && output.node_resource_group_name == "rg-platformdev-nodes"
+    error_message = "the outputs echo the given names"
   }
 }

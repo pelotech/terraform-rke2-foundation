@@ -4,11 +4,11 @@ mock_provider "azurerm" {
   source = "./tests/mocks"
 }
 
-run "issuer_and_both_identities_by_default" {
+run "issuer_and_both_identities" {
   command = plan
   assert {
     condition     = length(azurerm_storage_account.oidc) == 1 && azurerm_storage_account.oidc[0].name == "acmeplatformdevoidc" && azurerm_storage_account.oidc[0].allow_nested_items_to_be_public == false && azurerm_storage_account.oidc[0].shared_access_key_enabled == true && azurerm_storage_account.oidc[0].min_tls_version == "TLS1_2"
-    error_message = "an issuer account named from the Owner tag, no public containers, keys on for the static website setting"
+    error_message = "an issuer account with the given name, no public containers, keys on for the static website setting"
   }
   assert {
     condition     = length(azurerm_storage_account_static_website.oidc) == 1
@@ -16,7 +16,7 @@ run "issuer_and_both_identities_by_default" {
   }
   assert {
     condition     = length(azurerm_user_assigned_identity.workload) == 2 && azurerm_user_assigned_identity.workload["external_dns"].name == "id-platformdev-external-dns" && azurerm_user_assigned_identity.workload["cert_manager"].name == "id-platformdev-cert-manager"
-    error_message = "external_dns and cert_manager identities exist by default"
+    error_message = "an identity for each controller listed"
   }
   assert {
     condition     = azurerm_federated_identity_credential.workload["external_dns"].subject == "system:serviceaccount:external-dns:external-dns-controller" && azurerm_federated_identity_credential.workload["cert_manager"].subject == "system:serviceaccount:cert-manager:cert-manager" && tolist(azurerm_federated_identity_credential.workload["external_dns"].audience) == tolist(["api://AzureADTokenExchange"])
@@ -28,14 +28,14 @@ run "issuer_and_both_identities_by_default" {
   }
   assert {
     condition     = output.workload_identity_enabled_resolved == { external_dns = true, cert_manager = true }
-    error_message = "introspection reports both enabled"
+    error_message = "introspection reports both"
   }
 }
 
-run "disabled_creates_nothing" {
+run "null_creates_nothing" {
   command = plan
   variables {
-    workload_identity = { enabled = false }
+    workload_identity = null
   }
   assert {
     condition     = length(azurerm_storage_account.oidc) == 0 && length(azurerm_storage_account_static_website.oidc) == 0 && length(azurerm_user_assigned_identity.workload) == 0 && !contains(keys(azurerm_role_assignment.server), "oidc_storage")
@@ -47,25 +47,33 @@ run "disabled_creates_nothing" {
   }
 }
 
-run "one_identity_through_overrides" {
-  command = plan
+run "issuer_without_controllers" {
+  command = apply
   variables {
-    workload_identity = { enabled = false, overrides = { cert_manager = { enabled = true } } }
+    workload_identity = { storage_account_name = "platformdevoidc" }
   }
   assert {
-    condition     = sort(keys(azurerm_user_assigned_identity.workload)) == tolist(["cert_manager"]) && length(azurerm_storage_account.oidc) == 1
-    error_message = "an override turns one identity on, which needs the issuer"
+    condition     = length(azurerm_storage_account.oidc) == 1 && azurerm_storage_account.oidc[0].name == "platformdevoidc" && azurerm_role_assignment.server["oidc_storage"].role_definition_name == "Storage Blob Data Contributor"
+    error_message = "the issuer exists on its own, published by the server identity"
+  }
+  assert {
+    condition     = contains(output.server_config_resolved["kube-apiserver-arg"], "service-account-issuer=https://acmeplatformdevoidc.z1.web.core.usgovcloudapi.net/")
+    error_message = "the API server issues tokens for the issuer from day one, so a later controller needs no server change"
+  }
+  assert {
+    condition     = length(azurerm_user_assigned_identity.workload) == 0 && output.external_dns_client_id == null && output.cert_manager_client_id == null && output.workload_identity_enabled_resolved == { external_dns = false, cert_manager = false }
+    error_message = "no identity without its controller listed"
   }
 }
 
-run "storage_account_name_override" {
+run "one_controller" {
   command = plan
   variables {
-    workload_identity = { oidc_storage_account_name = "customoidc" }
+    workload_identity = { storage_account_name = "platformdevoidc", cert_manager = {} }
   }
   assert {
-    condition     = azurerm_storage_account.oidc[0].name == "customoidc"
-    error_message = "oidc_storage_account_name replaces the generated name"
+    condition     = sort(keys(azurerm_user_assigned_identity.workload)) == tolist(["cert_manager"]) && length(azurerm_storage_account.oidc) == 1
+    error_message = "listing one controller creates that identity only"
   }
 }
 
@@ -73,16 +81,15 @@ run "dns_zones_grant_contributor_and_reader" {
   command = plan
   variables {
     workload_identity = {
-      overrides = {
-        external_dns = {
-          dns_zone_ids = [
-            "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-dns/providers/Microsoft.Network/dnszones/example.com",
-            "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-dns-b/providers/Microsoft.Network/dnszones/example.org",
-          ]
-        }
-        cert_manager = {
-          dns_zone_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-dns/providers/Microsoft.Network/dnszones/example.com"]
-        }
+      storage_account_name = "platformdevoidc"
+      external_dns = {
+        dns_zone_ids = [
+          "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-dns/providers/Microsoft.Network/dnszones/example.com",
+          "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-dns-b/providers/Microsoft.Network/dnszones/example.org",
+        ]
+      }
+      cert_manager = {
+        dns_zone_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-dns/providers/Microsoft.Network/dnszones/example.com"]
       }
     }
   }
