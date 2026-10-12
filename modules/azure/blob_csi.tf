@@ -7,6 +7,7 @@ locals {
 resource "azurerm_storage_account" "blob_csi" {
   count                           = local.create_blob_storage_account ? 1 : 0
   name                            = var.blob_csi.storage_account_name
+  allowed_copy_scope              = var.blob_csi.allowed_copy_scope
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"

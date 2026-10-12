@@ -9,6 +9,7 @@ locals {
 resource "azurerm_storage_account" "etcd_backup" {
   count                           = local.etcd_backup_enabled ? 1 : 0
   name                            = var.etcd_backup.storage_account_name
+  allowed_copy_scope              = var.etcd_backup.allowed_copy_scope
   resource_group_name             = local.resource_group_name
   location                        = var.location
   account_kind                    = "StorageV2"

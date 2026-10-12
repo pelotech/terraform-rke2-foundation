@@ -383,13 +383,18 @@ variable "cluster_endpoint" {
     public               = bool
     authorized_ip_ranges = optional(list(string), [])
     dns_label            = optional(string)
+    internal_lb_name     = optional(string)
   })
   nullable    = false
-  description = "public adds a public load balancer in front of the API server, reachable only from authorized_ip_ranges, which is then required: 0.0.0.0/0 opens it to the internet, write it only when you mean it. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap. dns_label names the public address, unique per region; null generates <name>-<hash>."
+  description = "public adds a public load balancer in front of the API server, reachable only from authorized_ip_ranges, which is then required: 0.0.0.0/0 opens it to the internet, write it only when you mean it. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap. dns_label names the public address, unique per region; null generates <name>-<hash>. internal_lb_name overrides the internal load balancer name for Azure naming policies; null preserves lb-<name>-api."
 
   validation {
     condition     = var.cluster_endpoint.public == (length(var.cluster_endpoint.authorized_ip_ranges) > 0)
     error_message = "cluster_endpoint.authorized_ip_ranges must list at least one CIDR for a public endpoint and must be empty for a private one."
+  }
+  validation {
+    condition     = var.cluster_endpoint.internal_lb_name == null ? true : can(regex("^[A-Za-z0-9]([A-Za-z0-9_.-]{0,78}[A-Za-z0-9_])?$", var.cluster_endpoint.internal_lb_name))
+    error_message = "cluster_endpoint.internal_lb_name must be 1-80 letters, digits, underscores, periods or hyphens, starting with a letter or digit and ending with a letter, digit or underscore."
   }
   validation {
     condition     = var.cluster_endpoint.dns_label == null ? true : can(regex("^[a-z][a-z0-9-]{1,61}[a-z0-9]$", var.cluster_endpoint.dns_label))
@@ -432,14 +437,19 @@ variable "etcd_backup" {
     storage_account_name = string
     retention_days       = optional(number, 30)
     replication_type     = optional(string, "LRS")
+    allowed_copy_scope   = optional(string)
     network_access       = optional(string, "NodeSubnet")
     private_dns_zone_ids = optional(list(string), [])
   })
-  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage_account_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. network_access is NodeSubnet (default, requires Microsoft.Storage on an existing subnet) or PrivateEndpoint (public networking disabled, Blob endpoint in the node subnet, integrated with private_dns_zone_ids)."
+  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage_account_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. network_access is NodeSubnet (default, requires Microsoft.Storage on an existing subnet) or PrivateEndpoint (public networking disabled, Blob endpoint in the node subnet, integrated with private_dns_zone_ids). allowed_copy_scope restricts copy sources: AAD for the same Entra tenant, PrivateLink for accounts linked to the same virtual network, All for unrestricted copies, or null for the provider default."
 
   validation {
     condition     = var.etcd_backup == null ? true : contains(["NodeSubnet", "PrivateEndpoint"], var.etcd_backup.network_access)
     error_message = "etcd_backup.network_access must be NodeSubnet or PrivateEndpoint."
+  }
+  validation {
+    condition     = var.etcd_backup == null ? true : var.etcd_backup.allowed_copy_scope == null ? true : contains(["AAD", "PrivateLink", "All"], var.etcd_backup.allowed_copy_scope)
+    error_message = "etcd_backup.allowed_copy_scope must be AAD, PrivateLink or All, or null to preserve the provider default."
   }
   validation {
     condition     = var.etcd_backup == null ? true : (var.etcd_backup.network_access == "PrivateEndpoint") == (length(var.etcd_backup.private_dns_zone_ids) > 0)
@@ -570,10 +580,15 @@ variable "blob_csi" {
     network_access            = optional(string, "NodeSubnet")
     extra_subnet_ids          = optional(list(string), [])
     shared_access_key_enabled = optional(bool, false)
+    allowed_copy_scope        = optional(string)
     private_dns_zone_ids      = optional(list(string), [])
   })
-  description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. network_access is NodeSubnet, Public or PrivateEndpoint; extra_subnet_ids extends NodeSubnet access only, and private_dns_zone_ids is required exactly with PrivateEndpoint. The README section \"Storage\" explains each field."
+  description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. network_access is NodeSubnet, Public or PrivateEndpoint; extra_subnet_ids extends NodeSubnet access only, and private_dns_zone_ids is required exactly with PrivateEndpoint. allowed_copy_scope restricts copy sources: AAD for the same Entra tenant, PrivateLink for accounts linked to the same virtual network, All for unrestricted copies, or null for the provider default. The README section \"Storage\" explains each field."
 
+  validation {
+    condition     = var.blob_csi == null ? true : var.blob_csi.allowed_copy_scope == null ? true : contains(["AAD", "PrivateLink", "All"], var.blob_csi.allowed_copy_scope)
+    error_message = "blob_csi.allowed_copy_scope must be AAD, PrivateLink or All, or null to preserve the provider default."
+  }
   validation {
     condition     = var.blob_csi == null ? true : (var.blob_csi.network_access == "PrivateEndpoint") == (length(var.blob_csi.private_dns_zone_ids) > 0)
     error_message = "blob_csi.private_dns_zone_ids must be nonempty exactly when network_access is PrivateEndpoint."
