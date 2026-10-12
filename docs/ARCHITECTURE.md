@@ -27,7 +27,7 @@ flowchart LR
     srv["Server nodes<br/>3 VMs, one per zone"]
     pools["Agent pools<br/>one scale set per pool"]
     cnipool["cni pool<br/>kube-ovn only"]
-    nsg["Network security group<br/>on every NIC"]
+    nsg["Network security group<br/>on the node subnet"]
   end
   operator["Terraform, kubectl"] -->|6443| plb
   plb --> srv

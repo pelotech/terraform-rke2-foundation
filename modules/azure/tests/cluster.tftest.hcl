@@ -27,8 +27,8 @@ run "servers_defaults" {
     error_message = "servers run as the server identity with managed boot diagnostics"
   }
   assert {
-    condition     = length(azurerm_network_interface.server) == 3 && azurerm_network_interface.server[1].name == "nic-platformdev-server-1" && length(azurerm_network_interface_security_group_association.server) == 3
-    error_message = "one NIC per server, each behind the node security group"
+    condition     = length(azurerm_network_interface.server) == 3 && azurerm_network_interface.server[1].name == "nic-platformdev-server-1"
+    error_message = "one NIC per server"
   }
   assert {
     condition     = length(azurerm_network_interface_backend_address_pool_association.server_api) == 3 && length(azurerm_network_interface_backend_address_pool_association.server_api_public) == 3
@@ -101,7 +101,7 @@ run "agent_pool_defaults" {
     error_message = "initial size, zones, manual upgrades, no overprovisioning"
   }
   assert {
-    condition     = azurerm_linux_virtual_machine_scale_set.agent["general"].identity[0].type == "UserAssigned" && azurerm_linux_virtual_machine_scale_set.agent["general"].network_interface[0].ip_configuration[0].primary == true && azurerm_linux_virtual_machine_scale_set.agent["general"].disable_password_authentication == true
+    condition     = azurerm_linux_virtual_machine_scale_set.agent["general"].identity[0].type == "UserAssigned" && azurerm_linux_virtual_machine_scale_set.agent["general"].network_interface[0].ip_configuration[0].primary == true && azurerm_linux_virtual_machine_scale_set.agent["general"].network_interface[0].network_security_group_id == null && azurerm_linux_virtual_machine_scale_set.agent["general"].disable_password_authentication == true
     error_message = "agents run as the agent identity on one primary NIC, without passwords"
   }
   assert {

@@ -56,8 +56,9 @@ run "private_endpoint_needs_no_service_endpoint" {
   variables {
     network = {
       existing = {
-        vnet_id        = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/network/providers/Microsoft.Network/virtualNetworks/shared"
-        node_subnet_id = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/network/providers/Microsoft.Network/virtualNetworks/shared/subnets/team"
+        vnet_id           = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/network/providers/Microsoft.Network/virtualNetworks/shared"
+        node_subnet_id    = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/network/providers/Microsoft.Network/virtualNetworks/shared/subnets/team"
+        security_group_id = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/network/providers/Microsoft.Network/networkSecurityGroups/nsg-team"
       }
     }
     etcd_backup = {

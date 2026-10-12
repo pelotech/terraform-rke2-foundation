@@ -297,13 +297,14 @@ variable "network" {
       }), {})
     }))
     existing = optional(object({
-      vnet_id        = string
-      node_subnet_id = string
-      api_private_ip = optional(string)
+      vnet_id           = string
+      node_subnet_id    = string
+      security_group_id = string
+      api_private_ip    = optional(string)
     }))
   })
   nullable    = false
-  description = "Exactly one of create or existing. create builds a VNet with address_space, a node subnet of node_subnet for every VM, the API private address and private endpoints, and a NAT Gateway for egress. existing joins the given VNet and node subnet, creates no network and no NAT Gateway, so the subnet must provide egress; api_private_ip is the static address of the API load balancer, null lets Azure pick one."
+  description = "Exactly one of create or existing. create builds a VNet with address_space, a node subnet of node_subnet for every VM, the API private address and private endpoints, and a NAT Gateway for egress. existing joins the given VNet and node subnet, creates no network and no NAT Gateway, so the subnet must provide egress; security_group_id is the network security group on that subnet, where cloud-provider-azure adds the rules for LoadBalancer Services and the server identity gets Network Contributor; api_private_ip is the static address of the API load balancer, null lets Azure pick one."
 
   validation {
     condition     = (var.network.create == null) != (var.network.existing == null)
@@ -312,6 +313,10 @@ variable "network" {
   validation {
     condition     = var.network.existing == null ? true : can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/virtualNetworks/[^/]+/subnets/[^/]+$", var.network.existing.node_subnet_id))
     error_message = "network.existing.node_subnet_id must be a subnet resource id: /subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>."
+  }
+  validation {
+    condition     = var.network.existing == null ? true : can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/networkSecurityGroups/[^/]+$", var.network.existing.security_group_id))
+    error_message = "network.existing.security_group_id must be a network security group resource id: /subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Network/networkSecurityGroups/<name>."
   }
   validation {
     condition     = var.network.existing == null || try(var.network.existing.api_private_ip, null) == null ? true : can(cidrhost("${var.network.existing.api_private_ip}/32", 0))

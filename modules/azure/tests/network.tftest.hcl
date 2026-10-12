@@ -33,6 +33,10 @@ run "created_network_has_a_vnet_and_a_nat_gateway" {
     condition     = length(azurerm_subnet.nodes[0].service_endpoint) == 0
     error_message = "no service endpoints unless blob CSI, etcd backup or network.create.service_endpoints asks"
   }
+  assert {
+    condition     = length(azurerm_network_security_group.nodes) == 1 && azurerm_network_security_group.nodes[0].name == "nsg-platformdev-nodes" && length(azurerm_subnet_network_security_group_association.nodes) == 1
+    error_message = "the module's security group sits on the node subnet it creates"
+  }
 }
 
 run "created_network_settings_pass_through" {
@@ -67,9 +71,10 @@ run "existing_network_creates_nothing" {
   variables {
     network = {
       existing = {
-        vnet_id        = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared"
-        node_subnet_id = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared/subnets/snet-nodes"
-        api_private_ip = "10.1.0.4"
+        vnet_id           = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared"
+        node_subnet_id    = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared/subnets/snet-nodes"
+        security_group_id = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-shared-nodes"
+        api_private_ip    = "10.1.0.4"
       }
     }
   }
@@ -90,6 +95,18 @@ run "existing_network_creates_nothing" {
     error_message = "the cloud provider config names the VNet, its group and the subnet parsed from the subnet id"
   }
   assert {
+    condition     = length(azurerm_network_security_group.nodes) == 0 && length(azurerm_subnet_network_security_group_association.nodes) == 0 && output.node_security_group_id == "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-shared-nodes"
+    error_message = "network.existing creates no security group and reports the given one"
+  }
+  assert {
+    condition     = output.cloud_config_resolved.securityGroupName == "nsg-shared-nodes" && output.cloud_config_resolved.securityGroupResourceGroup == "rg-net"
+    error_message = "the cloud provider writes Service rules into the given group, parsed from its id"
+  }
+  assert {
+    condition     = azurerm_role_assignment.server["node_security_group"].role_definition_name == "Network Contributor" && azurerm_role_assignment.server["node_security_group"].scope == "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-shared-nodes"
+    error_message = "the server identity gets Network Contributor on the given group"
+  }
+  assert {
     condition     = output.vnet_id == "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared" && length(output.nat_gateway_public_ips) == 0
     error_message = "vnet_id echoes the existing VNet and there are no NAT addresses"
   }
@@ -100,8 +117,9 @@ run "existing_network_without_api_private_ip_lets_azure_pick" {
   variables {
     network = {
       existing = {
-        vnet_id        = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared"
-        node_subnet_id = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared/subnets/snet-nodes"
+        vnet_id           = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared"
+        node_subnet_id    = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-shared/subnets/snet-nodes"
+        security_group_id = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-shared-nodes"
       }
     }
   }

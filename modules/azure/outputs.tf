@@ -159,8 +159,8 @@ output "api_public_fqdn" {
 }
 
 output "node_security_group_id" {
-  description = "ID of the network security group on every node, where cloud-provider-azure adds Service rules."
-  value       = azurerm_network_security_group.nodes.id
+  description = "ID of the network security group on the node subnet, where cloud-provider-azure adds Service rules."
+  value       = local.node_security_group_id
 }
 
 # Key Vault and identities.
