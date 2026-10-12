@@ -385,7 +385,7 @@ variable "cluster_endpoint" {
     dns_label            = optional(string)
   })
   nullable    = false
-  description = "public adds a public load balancer in front of the API server, reachable only from authorized_ip_ranges, which is then required. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap. dns_label names the public address, unique per region; null generates <name>-<hash>."
+  description = "public adds a public load balancer in front of the API server, reachable only from authorized_ip_ranges, which is then required: 0.0.0.0/0 opens it to the internet, write it only when you mean it. false keeps only the internal one, which needs VNet connectivity to apply cni-bootstrap. dns_label names the public address, unique per region; null generates <name>-<hash>."
 
   validation {
     condition     = var.cluster_endpoint.public == (length(var.cluster_endpoint.authorized_ip_ranges) > 0)

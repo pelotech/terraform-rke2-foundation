@@ -40,7 +40,7 @@ Egress goes through the NAT Gateway. `nat_gateway_public_ips` lists its addresse
 | Input                            | Effect                                                                 |
 | -------------------------------- | ---------------------------------------------------------------------- |
 | `cluster_endpoint.public = false` | No public load balancer. Apply from inside the VNet.                  |
-| `cluster_endpoint.authorized_ip_ranges` | Required with a public endpoint: only those CIDRs reach the API server. |
+| `cluster_endpoint.authorized_ip_ranges` | Required with a public endpoint: only those CIDRs reach the API server. `0.0.0.0/0` is the explicit way to open it. |
 | `secrets_encryption`, on by default | Encrypts Secrets at rest in etcd.                                   |
 | `cis_profile`                    | Runs RKE2 with `profile: cis` and prepares the host for it.            |
 | `image`                          | A FIPS marketplace image, with its purchase plan in `image.plan`. The module takes no gallery image yet. |
