@@ -8,7 +8,7 @@ run "gallery_version_replaces_marketplace_for_every_node" {
     image = {
       id = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/images/providers/Microsoft.Compute/galleries/rke2/images/rhel102/versions/1.37.1"
     }
-    cni = "kube-ovn"
+    cni = { name = "kube-ovn", node_pool = { vm_size = "Standard_D4s_v5" } }
   }
   assert {
     condition = alltrue([

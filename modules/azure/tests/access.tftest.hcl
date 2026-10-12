@@ -1,4 +1,5 @@
-# Entra ID as the API server's OIDC provider, and the kube_exec block it enables.
+# Entra ID as the API server's OIDC provider, and the kube_exec block it enables. Terraform signs in through it too,
+# so every run lists an admin subject.
 
 mock_provider "azurerm" {
   source = "./tests/mocks"
@@ -6,13 +7,13 @@ mock_provider "azurerm" {
 
 # Without workload identity the API server args hold only the OIDC flags under test.
 variables {
-  workload_identity = { enabled = false }
+  workload_identity = null
 }
 
 run "entra_oidc_in_azure_government" {
   command = plan
   variables {
-    entra_oidc = { enabled = true, client_id = "22222222-2222-2222-2222-222222222222" }
+    entra_oidc = { client_id = "22222222-2222-2222-2222-222222222222", login_mode = "azurecli", admin_group_object_ids = ["33333333-3333-3333-3333-333333333333"] }
   }
   assert {
     condition = toset(output.server_config_resolved["kube-apiserver-arg"]) == toset([
@@ -33,14 +34,14 @@ run "entra_oidc_in_azure_government" {
 run "entra_oidc_overrides_in_public_cloud" {
   command = plan
   variables {
-    azure_cloud          = "public"
-    kube_exec_login_mode = "spn"
+    azure_cloud = "public"
     entra_oidc = {
-      enabled         = true
-      client_id       = "22222222-2222-2222-2222-222222222222"
-      issuer_url      = "https://sts.windows.net/00000000-0000-0000-0000-000000000001/"
-      username_claim  = "upn"
-      username_prefix = "entra:"
+      client_id              = "22222222-2222-2222-2222-222222222222"
+      login_mode             = "spn"
+      issuer_url             = "https://sts.windows.net/00000000-0000-0000-0000-000000000001/"
+      username_claim         = "upn"
+      username_prefix        = "entra:"
+      admin_group_object_ids = ["33333333-3333-3333-3333-333333333333"]
     }
   }
   assert {
@@ -57,8 +58,8 @@ run "entra_subjects_get_bindings_and_a_kubeconfig" {
   command = apply
   variables {
     entra_oidc = {
-      enabled                = true
       client_id              = "22222222-2222-2222-2222-222222222222"
+      login_mode             = "workloadidentity"
       username_prefix        = "entra:"
       admin_group_object_ids = ["33333333-3333-3333-3333-333333333333"]
       admin_object_ids       = ["44444444-4444-4444-4444-444444444444"]
@@ -87,8 +88,8 @@ run "entra_object_ids_without_a_prefix" {
   command = apply
   variables {
     entra_oidc = {
-      enabled           = true
       client_id         = "22222222-2222-2222-2222-222222222222"
+      login_mode        = "azurecli"
       admin_object_ids  = ["44444444-4444-4444-4444-444444444444"]
       reader_object_ids = ["55555555-5555-5555-5555-555555555555"]
     }
@@ -103,6 +104,6 @@ run "entra_off_adds_no_manifest" {
   command = apply
   assert {
     condition     = !contains(keys(output.server_manifests_resolved), "entra-access.yaml") && output.kubeconfig_entra == null
-    error_message = "without entra_oidc there is no binding manifest and no Entra kubeconfig"
+    error_message = "with entra_oidc null there is no binding manifest and no Entra kubeconfig"
   }
 }

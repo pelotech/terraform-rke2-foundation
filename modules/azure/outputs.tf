@@ -50,12 +50,12 @@ output "cluster_api_port" {
 
 output "cluster_service_cidr" {
   description = "Kubernetes service CIDR. Pass it to cni-bootstrap service_cidr."
-  value       = var.service_cidr
+  value       = var.cluster_network.service_cidr
 }
 
 output "cluster_pod_cidr" {
   description = "Pod CIDR, the RKE2 cluster-cidr. Pass it to cni-bootstrap pod_cidr."
-  value       = var.pod_cidr
+  value       = var.cluster_network.pod_cidr
 }
 
 output "cni_node_size" {
@@ -115,7 +115,7 @@ output "resource_group_name" {
 
 output "node_resource_group_name" {
   description = "Resource group holding the nodes and what the cloud provider and CSI driver create."
-  value       = azurerm_resource_group.nodes.name
+  value       = local.node_resource_group_name
 }
 
 output "location" {
@@ -129,8 +129,8 @@ output "region" {
 }
 
 output "vnet_id" {
-  description = "ID of the VNet, created or taken from existing_vnet."
-  value       = local.create_vnet ? azurerm_virtual_network.this[0].id : var.existing_vnet.vnet_id
+  description = "ID of the VNet, created or taken from network.existing."
+  value       = local.create_vnet ? azurerm_virtual_network.this[0].id : var.network.existing.vnet_id
 }
 
 output "node_subnet_id" {
@@ -138,13 +138,8 @@ output "node_subnet_id" {
   value       = local.node_subnet_id
 }
 
-output "database_subnet_id" {
-  description = "ID of the database subnet, null unless vnet.database_subnet_cidr is set."
-  value       = one(azurerm_subnet.database[*].id)
-}
-
 output "nat_gateway_public_ips" {
-  description = "Public IP addresses of the NAT Gateway, for allow lists. Empty with existing_vnet."
+  description = "Public IP addresses of the NAT Gateway, for allow lists. Empty with network.existing."
   value       = azurerm_public_ip.nat[*].ip_address
 }
 
@@ -237,7 +232,7 @@ output "cni_node_labels_resolved" {
 }
 
 output "dns_service_ip_resolved" {
-  description = "Cluster DNS service IP after resolving dns_service_ip and service_cidr."
+  description = "Cluster DNS service IP after resolving cluster_network.dns_service_ip and service_cidr."
   value       = local.dns_service_ip
 }
 
@@ -263,17 +258,17 @@ output "server_manifests_resolved" {
 
 # Workload identity. The GitOps layer sets each client_id on the azure.workload.identity/client-id annotation.
 output "oidc_issuer_url" {
-  description = "OIDC issuer URL of the cluster, null when workload identity is off. Use it for federated identity credentials you create yourself."
+  description = "OIDC issuer URL of the cluster, null when workload_identity is null. Use it for federated identity credentials you create yourself."
   value       = local.oidc_issuer_url
 }
 
 output "oidc_storage_account_id" {
-  description = "Resource ID of the storage account that serves the discovery document and JWKS, null when workload identity is off. The scope for extra grants, such as a plan identity that reads the static website."
+  description = "Resource ID of the storage account that serves the discovery document and JWKS, null when workload_identity is null. The scope for extra grants, such as a plan identity that reads the static website."
   value       = one(azurerm_storage_account.oidc[*].id)
 }
 
 output "external_dns_client_id" {
-  description = "Client ID of the external-dns workload identity, null when disabled."
+  description = "Client ID of the external-dns workload identity, null unless workload_identity.external_dns is set."
   value       = try(azurerm_user_assigned_identity.workload["external_dns"].client_id, null)
 }
 
@@ -283,12 +278,12 @@ output "external_dns_principal_id" {
 }
 
 output "external_dns_identity_id" {
-  description = "Resource ID of the external-dns workload identity, null when disabled."
+  description = "Resource ID of the external-dns workload identity, null unless workload_identity.external_dns is set."
   value       = try(azurerm_user_assigned_identity.workload["external_dns"].id, null)
 }
 
 output "cert_manager_client_id" {
-  description = "Client ID of the cert-manager workload identity, null when disabled."
+  description = "Client ID of the cert-manager workload identity, null unless workload_identity.cert_manager is set."
   value       = try(azurerm_user_assigned_identity.workload["cert_manager"].client_id, null)
 }
 
@@ -298,12 +293,12 @@ output "cert_manager_principal_id" {
 }
 
 output "cert_manager_identity_id" {
-  description = "Resource ID of the cert-manager workload identity, null when disabled."
+  description = "Resource ID of the cert-manager workload identity, null unless workload_identity.cert_manager is set."
   value       = try(azurerm_user_assigned_identity.workload["cert_manager"].id, null)
 }
 
 output "workload_identity_enabled_resolved" {
-  description = "Which workload identities are created, after enabled and overrides."
+  description = "Which workload identities are created: the controllers listed in workload_identity."
   value       = local.workload_identity_enabled
 }
 

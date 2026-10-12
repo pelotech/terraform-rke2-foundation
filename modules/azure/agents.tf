@@ -1,13 +1,13 @@
 locals {
   cni_agent_pool = local.cni_node_pool_enabled ? {
     cni = {
-      vm_size         = coalesce(var.cni_node_pool.vm_size, var.servers.vm_size)
-      node_count      = var.cni_node_pool.node_count
+      vm_size         = var.cni.node_pool.vm_size
+      node_count      = var.cni.node_pool.node_count
       min_count       = null
       max_count       = null
-      zones           = var.cni_node_pool.zones != null ? var.cni_node_pool.zones : var.servers.zones
-      os_disk_size_gb = var.cni_node_pool.os_disk_size_gb
-      os_disk_type    = var.cni_node_pool.os_disk_type
+      zones           = var.cni.node_pool.zones
+      os_disk_size_gb = var.cni.node_pool.os_disk_size_gb
+      os_disk_type    = var.cni.node_pool.os_disk_type
       labels          = local.cni_node_pool_labels
       taints          = local.cni_node_pool_taints
     }
@@ -48,7 +48,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "agent" {
   name                 = "vmss-${var.name}-${each.key}"
   computer_name_prefix = "${var.name}-${each.key}-"
   location             = var.location
-  resource_group_name  = azurerm_resource_group.nodes.name
+  resource_group_name  = local.node_resource_group_name
   sku                  = each.value.vm_size
   instances            = each.value.node_count
   zones                = length(each.value.zones) > 0 ? each.value.zones : null

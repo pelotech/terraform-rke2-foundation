@@ -4,14 +4,14 @@ locals {
     cloud                       = local.azure_cloud.environment
     tenantId                    = data.azurerm_client_config.current.tenant_id
     subscriptionId              = data.azurerm_client_config.current.subscription_id
-    resourceGroup               = azurerm_resource_group.nodes.name
+    resourceGroup               = local.node_resource_group_name
     location                    = var.location
     vmType                      = "vmss"
     vnetName                    = local.vnet_name
     vnetResourceGroup           = local.vnet_resource_group_name
     subnetName                  = local.node_subnet_name
     securityGroupName           = azurerm_network_security_group.nodes.name
-    securityGroupResourceGroup  = azurerm_resource_group.nodes.name
+    securityGroupResourceGroup  = local.node_resource_group_name
     loadBalancerSku             = "standard"
     useManagedIdentityExtension = true
     userAssignedIdentityID      = azurerm_user_assigned_identity.server.client_id
@@ -60,7 +60,7 @@ locals {
             cloudConfigSecretName  = "azure-cloud-config"
             configureCloudRoutes   = "false"
             allocateNodeCidrs      = "false"
-            clusterCIDR            = var.pod_cidr
+            clusterCIDR            = var.cluster_network.pod_cidr
             nodeSelector           = { "node-role.kubernetes.io/control-plane" = "true" }
             tolerations            = local.cloud_provider_tolerations
           }, local.cloud_provider_image)

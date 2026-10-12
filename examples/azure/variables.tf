@@ -28,16 +28,23 @@ variable "agent_vm_size" {
   description = "VM size of the general agent pool."
 }
 
-variable "cni_vm_size" {
-  type        = string
-  default     = "Standard_D4s_v5"
-  description = "VM size of the kube-ovn node. ovn-central and kube-ovn-controller need about 2 vCPUs and 3 GB on it."
+variable "cni" {
+  type = object({
+    name      = string
+    node_pool = optional(object({ vm_size = string }))
+  })
+  default     = { name = "kube-ovn", node_pool = { vm_size = "Standard_D4s_v5" } }
+  description = "CNI of the stack: cilium, kube-ovn or canal. kube-ovn needs node_pool; ovn-central and kube-ovn-controller need about 2 vCPUs and 3 GB on that node."
 }
 
-variable "cni" {
+variable "storage_account_prefix" {
   type        = string
-  default     = "kube-ovn"
-  description = "CNI profile of the stack: cilium, kube-ovn or canal."
+  description = "Prefix of the OIDC issuer and etcd snapshot storage account names, which must be unique across Azure: 3-20 lowercase letters and digits. The module appends oidc and etcd."
+
+  validation {
+    condition     = can(regex("^[a-z0-9]{3,20}$", var.storage_account_prefix))
+    error_message = "storage_account_prefix must be 3-20 lowercase letters and digits."
+  }
 }
 
 variable "authorized_ip_ranges" {

@@ -15,7 +15,8 @@ IMDS, cloud-provider-azure, the load balancer during joins, the OIDC issuer publ
    ```
 
 2. Copy `terraform.tfvars.example` to `terraform.tfvars`. Set `authorized_ip_ranges` to the egress address
-   of this host and `key_vault_admin_object_ids` to the principal applying the example:
+   of this host, `storage_account_prefix` to something unique across Azure, and `key_vault_admin_object_ids`
+   to the principal applying the example:
 
    ```bash
    az ad signed-in-user show --query id -o tsv
@@ -59,7 +60,8 @@ again".
 
 ## Cost
 
-Three servers, two agents and one kube-ovn node at the three `*_vm_size` inputs, one NAT Gateway, two Standard
+Three servers, two agents and one kube-ovn node at `server_vm_size`, `agent_vm_size` and
+`cni.node_pool.vm_size`, one NAT Gateway, two Standard
 load balancers, one Key Vault and two storage accounts, for the OIDC issuer and the etcd snapshots.
 Subscriptions with a 10 vCPU cap per family, such as a
 Visual Studio one, need a different family per role. Destroy when done.
@@ -98,10 +100,10 @@ Visual Studio one, need a different family per role. Destroy when done.
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_authorized_ip_ranges"></a> [authorized\_ip\_ranges](#input\_authorized\_ip\_ranges) | CIDRs allowed to reach the public API server: the egress address of the host that applies this example, at least. | `list(string)` | n/a | yes |
 | <a name="input_key_vault_admin_object_ids"></a> [key\_vault\_admin\_object\_ids](#input\_key\_vault\_admin\_object\_ids) | Entra object ids that may write the Key Vault secrets. Include the principal that applies this example. | `list(string)` | n/a | yes |
+| <a name="input_storage_account_prefix"></a> [storage\_account\_prefix](#input\_storage\_account\_prefix) | Prefix of the OIDC issuer and etcd snapshot storage account names, which must be unique across Azure: 3-20 lowercase letters and digits. The module appends oidc and etcd. | `string` | n/a | yes |
 | <a name="input_agent_vm_size"></a> [agent\_vm\_size](#input\_agent\_vm\_size) | VM size of the general agent pool. | `string` | `"Standard_D4s_v5"` | no |
 | <a name="input_azure_cloud"></a> [azure\_cloud](#input\_azure\_cloud) | Azure cloud for both the azurerm provider and the stack: public or usgovernment. | `string` | `"usgovernment"` | no |
-| <a name="input_cni"></a> [cni](#input\_cni) | CNI profile of the stack: cilium, kube-ovn or canal. | `string` | `"kube-ovn"` | no |
-| <a name="input_cni_vm_size"></a> [cni\_vm\_size](#input\_cni\_vm\_size) | VM size of the kube-ovn node. ovn-central and kube-ovn-controller need about 2 vCPUs and 3 GB on it. | `string` | `"Standard_D4s_v5"` | no |
+| <a name="input_cni"></a> [cni](#input\_cni) | CNI of the stack: cilium, kube-ovn or canal. kube-ovn needs node\_pool; ovn-central and kube-ovn-controller need about 2 vCPUs and 3 GB on that node. | <pre>object({<br/>    name      = string<br/>    node_pool = optional(object({ vm_size = string }))<br/>  })</pre> | <pre>{<br/>  "name": "kube-ovn",<br/>  "node_pool": {<br/>    "vm_size": "Standard_D4s_v5"<br/>  }<br/>}</pre> | no |
 | <a name="input_disk_csi_chart_version"></a> [disk\_csi\_chart\_version](#input\_disk\_csi\_chart\_version) | azuredisk-csi-driver chart version. | `string` | `"v1.30.10"` | no |
 | <a name="input_install_disk_csi"></a> [install\_disk\_csi](#input\_install\_disk\_csi) | Installs the Azure disk CSI driver so the smoke test can bind a PVC. | `bool` | `true` | no |
 | <a name="input_location"></a> [location](#input\_location) | Azure region. | `string` | `"usgovvirginia"` | no |

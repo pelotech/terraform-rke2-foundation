@@ -48,8 +48,8 @@ module "bootstrap" {
   registration_address   = local.api_private_ip_resolved
   api_server_url         = local.cluster_endpoint
   tls_sans               = azurerm_public_ip.api[*].fqdn
-  service_cidr           = var.service_cidr
-  pod_cidr               = var.pod_cidr
+  service_cidr           = var.cluster_network.service_cidr
+  pod_cidr               = var.cluster_network.pod_cidr
   cluster_dns            = local.dns_service_ip
   cni                    = local.cni_profile.rke2_cni
   disable_kube_proxy     = local.cni_profile.disable_kube_proxy

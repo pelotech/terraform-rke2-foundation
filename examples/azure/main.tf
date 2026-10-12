@@ -10,18 +10,28 @@ locals {
 module "stack" {
   source = "../../modules/azure"
 
-  name          = var.name
-  location      = var.location
-  azure_cloud   = var.azure_cloud
-  tags          = var.tags
-  cni           = var.cni
-  servers       = { vm_size = var.server_vm_size }
-  cni_node_pool = { vm_size = var.cni_vm_size }
+  name        = var.name
+  location    = var.location
+  azure_cloud = var.azure_cloud
+  tags        = var.tags
+
+  resource_group      = { name = "rg-${var.name}", create = true }
+  node_resource_group = { name = "rg-${var.name}-nodes", create = true }
+  network             = { create = {} }
+
+  servers = { vm_size = var.server_vm_size }
   agent_pools = {
     general = { vm_size = var.agent_vm_size, node_count = 2, min_count = 2, max_count = 5 }
   }
-  cluster_endpoint_authorized_ip_ranges = var.authorized_ip_ranges
-  key_vault                             = { admin_object_ids = var.key_vault_admin_object_ids }
+  cni = var.cni
+
+  cluster_endpoint = { public = true, authorized_ip_ranges = var.authorized_ip_ranges }
+  key_vault        = { admin_object_ids = var.key_vault_admin_object_ids }
+  entra_oidc       = null
+
+  workload_identity = { storage_account_name = "${var.storage_account_prefix}oidc", external_dns = {}, cert_manager = {} }
+  etcd_backup       = { storage_account_name = "${var.storage_account_prefix}etcd" }
+  blob_csi          = null
 }
 
 provider "helm" {
@@ -36,10 +46,10 @@ provider "helm" {
 module "cni" {
   source = "github.com/pelotech/terraform-helm-cni-bootstrap?ref=v1.1.0"
 
-  create                  = var.cni != "canal"
+  create                  = var.cni.name != "canal"
   cloud                   = module.stack.cloud
   distribution            = module.stack.distribution
-  cni                     = lookup(local.cni_bootstrap_cni, var.cni, "cilium")
+  cni                     = lookup(local.cni_bootstrap_cni, var.cni.name, "cilium")
   cluster_endpoint        = module.stack.cluster_endpoint
   cluster_ca_certificate  = module.stack.cluster_ca_certificate
   client_certificate      = module.stack.admin_client_certificate

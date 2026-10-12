@@ -55,20 +55,19 @@ run "api_load_balancers_and_security_rule" {
     error_message = "the public load balancer fronts 6443 only and does no outbound SNAT"
   }
   assert {
-    condition     = length(azurerm_network_security_rule.api_server) == 1 && azurerm_network_security_rule.api_server[0].source_address_prefix == "Internet" && azurerm_network_security_rule.api_server[0].destination_port_range == "6443"
-    error_message = "the API rule allows the internet by default"
+    condition     = length(azurerm_network_security_rule.api_server) == 1 && toset(azurerm_network_security_rule.api_server[0].source_address_prefixes) == toset(["203.0.113.0/24"]) && azurerm_network_security_rule.api_server[0].source_address_prefix == null && azurerm_network_security_rule.api_server[0].destination_port_range == "6443"
+    error_message = "the API rule allows only cluster_endpoint.authorized_ip_ranges, never the internet"
   }
 }
 
 run "authorized_ranges_and_dns_label" {
   command = plan
   variables {
-    cluster_endpoint_authorized_ip_ranges = ["203.0.113.0/24", "198.51.100.7/32"]
-    cluster_endpoint_dns_label            = "platform-dev-api"
+    cluster_endpoint = { public = true, authorized_ip_ranges = ["203.0.113.0/24", "198.51.100.7/32"], dns_label = "platform-dev-api" }
   }
   assert {
-    condition     = toset(azurerm_network_security_rule.api_server[0].source_address_prefixes) == toset(["203.0.113.0/24", "198.51.100.7/32"]) && azurerm_network_security_rule.api_server[0].source_address_prefix == null
-    error_message = "authorized ranges replace the Internet source"
+    condition     = toset(azurerm_network_security_rule.api_server[0].source_address_prefixes) == toset(["203.0.113.0/24", "198.51.100.7/32"])
+    error_message = "every authorized range is a source of the API rule"
   }
   assert {
     condition     = azurerm_public_ip.api[0].domain_name_label == "platform-dev-api"
@@ -79,7 +78,7 @@ run "authorized_ranges_and_dns_label" {
 run "private_cluster_has_no_public_surface" {
   command = plan
   variables {
-    cluster_endpoint_public_access = false
+    cluster_endpoint = { public = false }
   }
   assert {
     condition     = length(azurerm_public_ip.api) == 0 && length(azurerm_lb.api_public) == 0 && !contains(keys(azurerm_lb_rule.api), "public_api") && length(azurerm_network_security_rule.api_server) == 0 && length(azurerm_network_interface_backend_address_pool_association.server_api_public) == 0
@@ -146,8 +145,7 @@ run "autoscaled_pool_and_image_plan" {
 run "kube_ovn_adds_the_cni_pool" {
   command = plan
   variables {
-    cni           = "kube-ovn"
-    cni_node_pool = { vm_size = "Standard_D8s_v5", zones = ["2"] }
+    cni = { name = "kube-ovn", node_pool = { vm_size = "Standard_D8s_v5", zones = ["2"] } }
   }
   assert {
     condition     = azurerm_linux_virtual_machine_scale_set.agent["cni"].name == "vmss-platformdev-cni" && azurerm_linux_virtual_machine_scale_set.agent["cni"].instances == 1 && azurerm_linux_virtual_machine_scale_set.agent["cni"].sku == "Standard_D8s_v5" && tolist(azurerm_linux_virtual_machine_scale_set.agent["cni"].zones) == tolist(["2"])
@@ -179,15 +177,14 @@ run "cilium_labels_no_host_directories" {
   }
 }
 
-run "cni_pool_can_be_recycled" {
+run "kube_ovn_pool_defaults" {
   command = plan
   variables {
-    cni           = "kube-ovn"
-    cni_node_pool = { enabled = false }
+    cni = { name = "kube-ovn", node_pool = { vm_size = "Standard_D4s_v5" } }
   }
   assert {
-    condition     = !contains(keys(azurerm_linux_virtual_machine_scale_set.agent), "cni") && output.cni_node_size == 3 && output.cni_node_selector == "node-role.kubernetes.io/control-plane=true"
-    error_message = "enabled = false drops the pool and the poll falls back to the servers"
+    condition     = azurerm_linux_virtual_machine_scale_set.agent["cni"].instances == 1 && tolist(azurerm_linux_virtual_machine_scale_set.agent["cni"].zones) == tolist(["1", "2", "3"]) && azurerm_linux_virtual_machine_scale_set.agent["cni"].os_disk[0].storage_account_type == "Premium_LRS"
+    error_message = "one node across the three zones on a premium disk, with no sizing inherited from the servers"
   }
 }
 
@@ -210,7 +207,7 @@ run "cilium_contract_and_config" {
 run "canal_is_bundled" {
   command = plan
   variables {
-    cni = "canal"
+    cni = { name = "canal" }
   }
   assert {
     condition     = output.server_config_resolved["cni"] == "canal" && !contains(keys(output.server_config_resolved), "disable-kube-proxy") && output.cni_node_size == 3

@@ -6,23 +6,23 @@ locals {
   }
 
   workload_identity_enabled = {
-    for k in keys(local.workload_identities) : k => coalesce(var.workload_identity.overrides[k].enabled, var.workload_identity.enabled)
+    for k in keys(local.workload_identities) : k => local.oidc_issuer_enabled ? var.workload_identity[k] != null : false
   }
   enabled_workload_identities = { for k, v in local.workload_identities : k => v if local.workload_identity_enabled[k] }
 
   # Keys carry the zone id, so removing one zone never touches the others.
   dns_zone_grants = merge([
     for k in keys(local.enabled_workload_identities) : {
-      for id in var.workload_identity.overrides[k].dns_zone_ids : "${k}_${lower(id)}" => { identity = k, zone_id = id }
+      for id in var.workload_identity[k].dns_zone_ids : "${k}_${lower(id)}" => { identity = k, zone_id = id }
     }
   ]...)
 
+  external_dns_zone_ids = local.workload_identity_enabled.external_dns ? var.workload_identity.external_dns.dns_zone_ids : []
   # external-dns needs Reader on each zone's resource group. Keys are lowercased so ids differing only by case share a grant; the scope keeps Azure's casing or every plan replaces it.
   external_dns_zone_resource_groups = {
     for scope in [
-      for parsed in [for id in var.workload_identity.overrides.external_dns.dns_zone_ids : provider::azurerm::parse_resource_id(id)] :
+      for parsed in [for id in local.external_dns_zone_ids : provider::azurerm::parse_resource_id(id)] :
       "/subscriptions/${parsed.subscription_id}/resourceGroups/${parsed.resource_group_name}"
-      if local.workload_identity_enabled.external_dns
     ] : lower(scope) => scope...
   }
 }
