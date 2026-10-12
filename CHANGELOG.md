@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.4.1...v1.0.0) (2026-10-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **azure:** every consumer rewrites its tfvars. Resource addresses are unchanged, so a plan with the transcribed values shows no changes.
+
+### Features
+
+* **azure:** explicit inputs and reuse of existing node resource groups ([#36](https://github.com/pelotech/terraform-rke2-foundation/issues/36)) ([ef68ee7](https://github.com/pelotech/terraform-rke2-foundation/commit/ef68ee73600f479e4e0e5716e23a74eeb81194fa))
+
 ## [0.4.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v0.4.0...v0.4.1) (2026-10-11)
 
 
