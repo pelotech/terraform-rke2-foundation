@@ -258,6 +258,12 @@ never routed in Azure, and must not overlap the VNet.
   `network.existing.security_group_id` otherwise. cloud-provider-azure adds the rules for LoadBalancer
   Services there and the server identity gets Network Contributor on it; the module adds only the API server
   rule for a public endpoint.
+- A cluster created before 1.1.1 attached that group to every NIC. Terraform destroys a resource before it
+  updates the resources that referred to it, so the first apply after the upgrade fails with
+  `NetworkSecurityGroupInUseByVirtualMachineScaleSet`. Upgrade in four steps: `terraform state rm` the
+  module's `azurerm_network_security_group.nodes[0]`, apply, `az vmss update-instances` on every pool, then
+  `az network nsg delete` the old group. The group now carries `create_before_destroy`, which orders its
+  destruction after those updates for any later change.
 
 ## Access
 

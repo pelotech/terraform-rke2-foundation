@@ -12,6 +12,11 @@ resource "azurerm_network_security_group" "nodes" {
   location            = var.location
   resource_group_name = local.node_resource_group_name
   tags                = var.tags
+
+  # Destroyed only after the scale sets that still name it have been updated.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "nodes" {
