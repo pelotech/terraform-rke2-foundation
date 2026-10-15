@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.2.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.1.1...v1.2.0) (2026-10-15)
+
+
+### Features
+
+* **azure:** legacy service-principal runtime path and AzureRM 5.3.0 floor ([#48](https://github.com/pelotech/terraform-rke2-foundation/issues/48)) ([4051aca](https://github.com/pelotech/terraform-rke2-foundation/commit/4051acaefb61783163375d651b865da7a5abc80f))
+
+
+### Bug Fixes
+
+* **azure:** destroy the node security group after the scale sets drop it ([#42](https://github.com/pelotech/terraform-rke2-foundation/issues/42)) ([0fe3fdf](https://github.com/pelotech/terraform-rke2-foundation/commit/0fe3fdfc60f75073742beaa3ef5840eca132fb96))
+
+
+### Chores
+
+* **deps:** bump flake-parts from `31729ca` to `024633c` ([#47](https://github.com/pelotech/terraform-rke2-foundation/issues/47)) ([a455663](https://github.com/pelotech/terraform-rke2-foundation/commit/a455663997e88f1b9aedd04f619c3a434184b92d))
+* **deps:** bump nixpkgs from `e158d9e` to `151fa4e` ([#46](https://github.com/pelotech/terraform-rke2-foundation/issues/46)) ([893ffa2](https://github.com/pelotech/terraform-rke2-foundation/commit/893ffa2465c3bfe80dedd018fb21e22131c51364))
+* **deps:** update actions/create-github-app-token digest to 64ab729 ([#43](https://github.com/pelotech/terraform-rke2-foundation/issues/43)) ([01b9025](https://github.com/pelotech/terraform-rke2-foundation/commit/01b90251441766d5cfb8eed89e435c09201e788f))
+* **deps:** update cachix/install-nix-action action to v31.11.2 ([#45](https://github.com/pelotech/terraform-rke2-foundation/issues/45)) ([2d2fa16](https://github.com/pelotech/terraform-rke2-foundation/commit/2d2fa16c5f36a22ab068325d5132693683f762b3))
+* **deps:** update pre-commit hook zizmorcore/zizmor-pre-commit to v1.31.0 ([#49](https://github.com/pelotech/terraform-rke2-foundation/issues/49)) ([692cb47](https://github.com/pelotech/terraform-rke2-foundation/commit/692cb4772429cd74d00c756d9ee927c521daa6d6))
+
 ## [1.1.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.1.0...v1.1.1) (2026-10-12)
 
 
