@@ -242,7 +242,7 @@ run "server_cloud_init_roles" {
     error_message = "servers join through the internal address and fetch from the vault with the Gov audience"
   }
   assert {
-    condition     = strcontains(base64decode(azurerm_linux_virtual_machine.server[1].custom_data), azurerm_user_assigned_identity.server.client_id) && strcontains(base64decode(azurerm_linux_virtual_machine_scale_set.agent["general"].custom_data), azurerm_user_assigned_identity.agent.client_id) && !strcontains(base64decode(azurerm_linux_virtual_machine_scale_set.agent["general"].custom_data), azurerm_user_assigned_identity.server.client_id)
+    condition     = strcontains(base64decode(azurerm_linux_virtual_machine.server[1].custom_data), azurerm_user_assigned_identity.server[0].client_id) && strcontains(base64decode(azurerm_linux_virtual_machine_scale_set.agent["general"].custom_data), azurerm_user_assigned_identity.agent[0].client_id) && !strcontains(base64decode(azurerm_linux_virtual_machine_scale_set.agent["general"].custom_data), azurerm_user_assigned_identity.server[0].client_id)
     error_message = "each role fetches with its own identity"
   }
   assert {

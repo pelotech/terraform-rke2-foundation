@@ -366,14 +366,14 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 5.5.0 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 5.3.0 |
 | <a name="requirement_tls"></a> [tls](#requirement\_tls) | >= 4.0.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 5.5.0 |
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | >= 5.3.0 |
 | <a name="provider_tls"></a> [tls](#provider\_tls) | >= 4.0.0 |
 
 ## Modules
@@ -479,6 +479,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_registries_config"></a> [registries\_config](#input\_registries\_config) | Content of /etc/rancher/rke2/registries.yaml for every node: mirrors, rewrites and registry credentials. It travels as a node secret, never in cloud-init. null writes no file, so nodes pull from the upstream registries. | `string` | `null` | no |
 | <a name="input_registry_ca_pem"></a> [registry\_ca\_pem](#input\_registry\_ca\_pem) | PEM chain of a private registry, written to /etc/rancher/rke2/registry-ca.pem on every node before RKE2 starts. Reference that path as ca\_file in registries\_config. | `string` | `null` | no |
 | <a name="input_rke2_version"></a> [rke2\_version](#input\_rke2\_version) | RKE2 release every node installs, v1.36.0+rke2r1 or newer. Changing it affects new nodes only; see the README section "Upgrades". | `string` | `"v1.37.1+rke2r1"` | no |
+| <a name="input_runtime_credential"></a> [runtime\_credential](#input\_runtime\_credential) | Service principal the nodes use instead of managed identities: cloud-provider-azure, the CSI drivers and the snapshot upload authenticate with it, and cloud-init carries the join tokens and CA set instead of the Key Vault. null keeps the default: one managed identity per role with the module's role assignments and the vault. Set it where the applying principal cannot create identities or role assignments; the Key Vault then stays but holds no secrets. | <pre>object({<br/>    client_id     = string<br/>    client_secret = string<br/>  })</pre> | `null` | no |
 | <a name="input_secrets_encryption"></a> [secrets\_encryption](#input\_secrets\_encryption) | Encrypts Secrets at rest in etcd with RKE2's secrets-encryption. | `bool` | `true` | no |
 | <a name="input_ssh_public_key"></a> [ssh\_public\_key](#input\_ssh\_public\_key) | OpenSSH public key for admin\_username on every node. null generates an RSA key pair and stores the private key in the Key Vault as ssh-private-key. | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags for every resource. | `map(string)` | `{}` | no |
@@ -504,7 +505,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="output_cert_manager_identity_id"></a> [cert\_manager\_identity\_id](#output\_cert\_manager\_identity\_id) | Resource ID of the cert-manager workload identity, null unless workload\_identity.cert\_manager is set. |
 | <a name="output_cert_manager_principal_id"></a> [cert\_manager\_principal\_id](#output\_cert\_manager\_principal\_id) | Principal ID of the cert-manager workload identity, for role assignments you create yourself. |
 | <a name="output_cloud"></a> [cloud](#output\_cloud) | Cloud this stack runs on. Pass it to cni-bootstrap cloud. |
-| <a name="output_cloud_config_resolved"></a> [cloud\_config\_resolved](#output\_cloud\_config\_resolved) | cloud-provider-azure cloud config the servers write into the azure-cloud-config secret. |
+| <a name="output_cloud_config_resolved"></a> [cloud\_config\_resolved](#output\_cloud\_config\_resolved) | cloud-provider-azure cloud config the servers write into the azure-cloud-config secret, without the client secret of runtime\_credential. |
 | <a name="output_cluster_api_host"></a> [cluster\_api\_host](#output\_cluster\_api\_host) | Host for Cilium k8sServiceHost. Every RKE2 node runs a local API load balancer on 127.0.0.1:6443, so this is not the external host. |
 | <a name="output_cluster_api_port"></a> [cluster\_api\_port](#output\_cluster\_api\_port) | Port for Cilium k8sServicePort, the RKE2 agent load balancer port. |
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | Base64 encoded PEM of the CA that signs the API server certificate, known at plan time. |

@@ -68,7 +68,7 @@ run "private_endpoint_needs_no_service_endpoint" {
     }
   }
   assert {
-    condition     = azurerm_storage_account.etcd_backup[0].public_network_access == "Disabled" && length(azurerm_storage_account_network_rules.etcd_backup[0].virtual_network_subnet_ids) == 0
+    condition     = !azurerm_storage_account.etcd_backup[0].public_network_access_enabled && length(azurerm_storage_account_network_rules.etcd_backup[0].virtual_network_subnet_ids) == 0
     error_message = "PrivateEndpoint disables public networking without requiring a subnet service endpoint."
   }
   assert {

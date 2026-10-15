@@ -72,7 +72,7 @@ run "private_endpoint_preserves_keys_and_private_containers" {
     }
   }
   assert {
-    condition     = azurerm_storage_account.blob_csi[0].public_network_access == "Disabled" && azurerm_storage_account.blob_csi[0].shared_access_key_enabled && !azurerm_storage_account.blob_csi[0].allow_nested_items_to_be_public && azurerm_storage_container.blob_csi["backups"].container_access_type == "private"
+    condition     = !azurerm_storage_account.blob_csi[0].public_network_access_enabled && azurerm_storage_account.blob_csi[0].shared_access_key_enabled && !azurerm_storage_account.blob_csi[0].allow_nested_items_to_be_public && azurerm_storage_container.blob_csi["backups"].container_access_type == "private"
     error_message = "Private networking preserves the configured authentication and forbids anonymous container access."
   }
   assert {

@@ -18,7 +18,7 @@ resource "azurerm_key_vault" "this" {
 }
 
 resource "azurerm_role_assignment" "key_vault_admin" {
-  for_each             = toset(var.key_vault.admin_object_ids)
+  for_each             = local.managed_identities ? toset(var.key_vault.admin_object_ids) : []
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = each.value
@@ -32,7 +32,7 @@ resource "tls_private_key" "ssh" {
 
 # Writing secrets under RBAC needs Secrets Officer, so the applying principal must be in key_vault.admin_object_ids.
 resource "azurerm_key_vault_secret" "node" {
-  for_each     = module.bootstrap.server_secret_paths
+  for_each     = local.managed_identities ? module.bootstrap.server_secret_paths : {}
   name         = each.key
   value        = module.bootstrap.server_secret_contents[each.key]
   content_type = "text/plain"
@@ -42,7 +42,7 @@ resource "azurerm_key_vault_secret" "node" {
 }
 
 resource "azurerm_key_vault_secret" "ssh_private_key" {
-  count        = local.create_ssh_key ? 1 : 0
+  count        = local.create_ssh_key && local.managed_identities ? 1 : 0
   name         = "ssh-private-key"
   value        = tls_private_key.ssh[0].private_key_openssh
   content_type = "text/plain"

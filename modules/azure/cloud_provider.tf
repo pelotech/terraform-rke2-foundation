@@ -1,6 +1,7 @@
 locals {
   # azure.json for cloud-provider-azure. No credentials: the controllers use the server identity through IMDS.
-  cloud_config = {
+  # The legacy path merges its secret last, so cloud_config_public can be an output.
+  cloud_config_public = merge({
     cloud                       = local.azure_cloud.environment
     tenantId                    = data.azurerm_client_config.current.tenant_id
     subscriptionId              = data.azurerm_client_config.current.subscription_id
@@ -13,11 +14,11 @@ locals {
     securityGroupName           = local.node_security_group_name
     securityGroupResourceGroup  = local.node_security_group_resource_group_name
     loadBalancerSku             = "standard"
-    useManagedIdentityExtension = true
-    userAssignedIdentityID      = azurerm_user_assigned_identity.server.client_id
+    useManagedIdentityExtension = local.managed_identities
     useInstanceMetadata         = true
     excludeMasterFromStandardLB = true
-  }
+  }, local.managed_identities ? { userAssignedIdentityID = azurerm_user_assigned_identity.server[0].client_id } : local.legacy_cloud_config_public)
+  cloud_config = merge(local.cloud_config_public, local.legacy_cloud_config_secret)
 
   # The controller minor must follow Kubernetes even when the chart lags it.
   cloud_provider_image = var.cloud_provider_image_tag == null ? {} : { imageTag = var.cloud_provider_image_tag }

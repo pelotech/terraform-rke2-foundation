@@ -176,32 +176,32 @@ output "key_vault_name" {
 
 output "server_identity_client_id" {
   description = "Client ID of the server identity, which cloud-provider-azure and cluster-autoscaler use."
-  value       = azurerm_user_assigned_identity.server.client_id
+  value       = one(azurerm_user_assigned_identity.server[*].client_id)
 }
 
 output "server_identity_principal_id" {
   description = "Principal ID of the server identity, for extra role assignments."
-  value       = azurerm_user_assigned_identity.server.principal_id
+  value       = one(azurerm_user_assigned_identity.server[*].principal_id)
 }
 
 output "server_identity_id" {
   description = "Resource ID of the server identity."
-  value       = azurerm_user_assigned_identity.server.id
+  value       = one(azurerm_user_assigned_identity.server[*].id)
 }
 
 output "agent_identity_client_id" {
   description = "Client ID of the agent identity, the kubelet identity the CSI drivers use."
-  value       = azurerm_user_assigned_identity.agent.client_id
+  value       = one(azurerm_user_assigned_identity.agent[*].client_id)
 }
 
 output "agent_identity_principal_id" {
   description = "Principal ID of the agent identity, for extra role assignments."
-  value       = azurerm_user_assigned_identity.agent.principal_id
+  value       = one(azurerm_user_assigned_identity.agent[*].principal_id)
 }
 
 output "agent_identity_id" {
   description = "Resource ID of the agent identity."
-  value       = azurerm_user_assigned_identity.agent.id
+  value       = one(azurerm_user_assigned_identity.agent[*].id)
 }
 
 # Nodes.
@@ -247,13 +247,14 @@ output "server_config_resolved" {
 }
 
 output "cloud_config_resolved" {
-  description = "cloud-provider-azure cloud config the servers write into the azure-cloud-config secret."
-  value       = local.cloud_config
+  description = "cloud-provider-azure cloud config the servers write into the azure-cloud-config secret, without the client secret of runtime_credential."
+  value       = local.cloud_config_public
 }
 
 output "server_manifests_resolved" {
   description = "Manifests every server writes to the RKE2 manifests directory, file name to YAML."
   value       = local.server_manifests
+  sensitive   = true
 }
 
 # Workload identity. The GitOps layer sets each client_id on the azure.workload.identity/client-id annotation.

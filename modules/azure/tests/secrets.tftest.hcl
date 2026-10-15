@@ -72,7 +72,7 @@ run "provided_ssh_key_is_used_as_is" {
 run "identity_grants" {
   command = plan
   assert {
-    condition     = azurerm_user_assigned_identity.server.name == "id-platformdev-server" && azurerm_user_assigned_identity.agent.name == "id-platformdev-agent"
+    condition     = azurerm_user_assigned_identity.server[0].name == "id-platformdev-server" && azurerm_user_assigned_identity.agent[0].name == "id-platformdev-agent"
     error_message = "one identity for servers, one for agents"
   }
   assert {

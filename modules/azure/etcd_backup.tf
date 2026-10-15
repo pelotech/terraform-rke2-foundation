@@ -19,7 +19,7 @@ resource "azurerm_storage_account" "etcd_backup" {
   allow_nested_items_to_be_public = false
   allowed_copy_scope              = "AAD"
   shared_access_key_enabled       = false
-  public_network_access           = local.etcd_backup_private_endpoint ? "Disabled" : "Enabled"
+  public_network_access_enabled   = !local.etcd_backup_private_endpoint
   tags                            = var.tags
 
   blob_properties {

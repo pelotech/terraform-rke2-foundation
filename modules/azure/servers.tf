@@ -79,9 +79,12 @@ resource "azurerm_linux_virtual_machine" "server" {
     public_key = local.ssh_public_key
   }
 
-  identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.server.id]
+  dynamic "identity" {
+    for_each = azurerm_user_assigned_identity.server
+    content {
+      type         = "UserAssigned"
+      identity_ids = [identity.value.id]
+    }
   }
 
   os_disk {
