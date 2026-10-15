@@ -66,9 +66,12 @@ resource "azurerm_linux_virtual_machine_scale_set" "agent" {
     public_key = local.ssh_public_key
   }
 
-  identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.agent.id]
+  dynamic "identity" {
+    for_each = azurerm_user_assigned_identity.agent
+    content {
+      type         = "UserAssigned"
+      identity_ids = [identity.value.id]
+    }
   }
 
   os_disk {

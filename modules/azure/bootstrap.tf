@@ -7,32 +7,34 @@ locals {
     "service-account-jwks-uri=${local.oidc_issuer_url}openid/v1/jwks",
   ] : []
 
-  imds_token_script = file("${path.module}/templates/imds-token.sh")
-  blob_put_script   = file("${path.module}/templates/blob-put.sh")
+  # imds_token RESOURCE comes from IMDS with a managed identity.
+  token_script     = local.managed_identities ? file("${path.module}/templates/imds-token.sh") : local.legacy_token_script
+  blob_put_script  = file("${path.module}/templates/blob-put.sh")
+  server_client_id = local.managed_identities ? azurerm_user_assigned_identity.server[0].client_id : local.legacy_client_id
 
   # Each role fetches with its own identity; bootstrap.sh decides which secrets.
-  fetch_secrets_scripts = {
-    for role, identity in { server = azurerm_user_assigned_identity.server, agent = azurerm_user_assigned_identity.agent } :
+  fetch_secrets_scripts = local.managed_identities ? {
+    for role, identity in { server = azurerm_user_assigned_identity.server[0], agent = azurerm_user_assigned_identity.agent[0] } :
     role => templatefile("${path.module}/templates/fetch-secrets.sh.tftpl", {
       vault_uri  = azurerm_key_vault.this.vault_uri
       audience   = local.azure_cloud.key_vault_audience
       client_id  = identity.client_id
-      imds_token = local.imds_token_script
+      imds_token = local.token_script
     })
-  }
+  } : local.legacy_fetch_secrets_scripts
 
   put_snapshot_script = local.etcd_backup_enabled ? templatefile("${path.module}/templates/put-snapshot.sh.tftpl", {
-    client_id     = azurerm_user_assigned_identity.server.client_id
+    client_id     = local.server_client_id
     container_url = local.etcd_backup_container_url
-    imds_token    = local.imds_token_script
+    imds_token    = local.token_script
     blob_put      = local.blob_put_script
   }) : ""
 
   post_bootstrap_script = local.oidc_issuer_enabled ? templatefile("${path.module}/templates/post-bootstrap.sh.tftpl", {
-    client_id     = azurerm_user_assigned_identity.server.client_id
+    client_id     = local.server_client_id
     issuer_url    = local.oidc_issuer_url
     blob_endpoint = azurerm_storage_account.oidc[0].primary_blob_endpoint
-    imds_token    = local.imds_token_script
+    imds_token    = local.token_script
     blob_put      = local.blob_put_script
   }) : ""
 }
