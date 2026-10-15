@@ -2,16 +2,6 @@
 # subscriptions where the applying principal cannot create identities or role assignments. Recommended: leave
 # runtime_credential null. To drop this path, delete this file and the managed_identities branches it breaks.
 
-variable "runtime_credential" {
-  type = object({
-    client_id     = string
-    client_secret = string
-  })
-  default     = null
-  sensitive   = true
-  description = "Service principal the nodes use instead of managed identities: cloud-provider-azure, the CSI drivers and the snapshot upload authenticate with it, and cloud-init carries the join tokens and CA set instead of the Key Vault. null keeps the default: one managed identity per role with the module's role assignments and the vault. Set it where the applying principal cannot create identities or role assignments; the Key Vault then stays but holds no secrets."
-}
-
 locals {
   # nonsensitive: the comparison inherits the credential's mark, and counts cannot depend on a sensitive value.
   managed_identities = nonsensitive(var.runtime_credential == null)

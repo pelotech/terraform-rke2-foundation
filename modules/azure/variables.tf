@@ -640,3 +640,14 @@ variable "pki" {
   nullable    = false
   description = "Validity of the CA set and of the admin client certificate, which Terraform renews admin_early_renewal_hours before it expires."
 }
+
+# Legacy path, implemented in runtime_credential_legacy.tf; the managed-identity default is the recommended one.
+variable "runtime_credential" {
+  type = object({
+    client_id     = string
+    client_secret = string
+  })
+  default     = null
+  sensitive   = true
+  description = "Service principal the nodes use instead of managed identities: cloud-provider-azure, the CSI drivers and the snapshot upload authenticate with it, and cloud-init carries the join tokens and CA set instead of the Key Vault. null keeps the default: one managed identity per role with the module's role assignments and the vault. Set it where the applying principal cannot create identities or role assignments; the Key Vault then stays but holds no secrets."
+}
