@@ -22,6 +22,7 @@ locals {
       "CIS_PROFILE=${var.cis_profile}",
       "DISABLE_FIREWALLD=${var.disable_firewalld}",
       "SELINUX_CONTAINER_DIRS=\"${join(" ", var.selinux_container_dirs)}\"",
+      "SELINUX_CONTAINER_FILES=\"${join(" ", var.selinux_container_files)}\"",
       "KERNEL_MODULES=\"${join(" ", var.kernel_modules)}\"",
       "ETCD_DISK_DEVICE=${var.etcd_disk_device == null ? "" : var.etcd_disk_device}",
       # Quoted: the pairs are space separated and the file is sourced by bash.

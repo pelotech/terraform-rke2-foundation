@@ -95,6 +95,18 @@ run "kernel_modules_reach_every_role" {
   }
 }
 
+run "selinux_files_reach_every_role" {
+  command = plan
+  variables {
+    agent_pools             = { default = {} }
+    selinux_container_files = ["/run/xtables.lock"]
+  }
+  assert {
+    condition     = strcontains(output.server_user_data.member, "SELINUX_CONTAINER_FILES=\"/run/xtables.lock\"") && strcontains(output.agent_user_data["default"], "SELINUX_CONTAINER_FILES=\"/run/xtables.lock\"") && strcontains(output.agent_user_data["default"], "semanage fcontext -a -f f -t container_file_t")
+    error_message = "the env file carries the files on servers and agents, and bootstrap.sh labels them"
+  }
+}
+
 run "selinux_dirs_reach_every_role" {
   command = plan
   variables {

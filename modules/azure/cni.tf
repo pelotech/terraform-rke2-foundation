@@ -2,19 +2,22 @@ locals {
   # What each CNI choice changes. cilium and kube-ovn are installed by cni-bootstrap after this module.
   cni_profiles = {
     cilium = {
-      rke2_cni               = "none"
-      disable_kube_proxy     = true
-      cni_node_pool          = null
-      selinux_container_dirs = []
-      kernel_modules         = []
+      rke2_cni                = "none"
+      disable_kube_proxy      = true
+      cni_node_pool           = null
+      selinux_container_dirs  = []
+      selinux_container_files = []
+      kernel_modules          = []
     }
     "kube-ovn" = {
       rke2_cni           = "none"
       disable_kube_proxy = false
       # The chart defaults for its state, log and run directories; its pods run as container_t, not privileged.
       selinux_container_dirs = ["/etc/origin", "/opt/ovs-config", "/var/log/kube-ovn", "/var/log/ovn", "/var/log/openvswitch", "/run/openvswitch", "/run/ovn"]
-      # The tunnel and the ipsets kube-ovn-cni manages; SELinux keeps container_t from loading modules itself.
-      kernel_modules = ["openvswitch", "geneve", "ip_set", "ip_set_hash_ip", "ip_set_hash_net", "xt_set"]
+      # The tunnel, veth, ipset and mangle modules kube-ovn-cni requests; RHEL 9 keeps container_t from loading them itself.
+      kernel_modules = ["openvswitch", "geneve", "veth", "ip_set", "ip_set_hash_ip", "ip_set_hash_net", "xt_set", "iptable_mangle"]
+      # The iptables lock the pods share with the host; RHEL 9 labels it iptables_var_run_t, which container_t cannot open.
+      selinux_container_files = ["/run/xtables.lock"]
       cni_node_pool = {
         labels = { "kube-ovn/role" = "master" }
         taints = {
@@ -23,11 +26,12 @@ locals {
       }
     }
     canal = {
-      rke2_cni               = "canal"
-      disable_kube_proxy     = false
-      cni_node_pool          = null
-      selinux_container_dirs = []
-      kernel_modules         = []
+      rke2_cni                = "canal"
+      disable_kube_proxy      = false
+      cni_node_pool           = null
+      selinux_container_dirs  = []
+      selinux_container_files = []
+      kernel_modules          = []
     }
   }
   cni_profile = local.cni_profiles[var.cni.name]

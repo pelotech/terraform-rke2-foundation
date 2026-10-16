@@ -168,16 +168,20 @@ run "kube_ovn_adds_the_cni_pool" {
     error_message = "the bootstrap labels the kube-ovn host directories for SELinux"
   }
   assert {
-    condition     = tolist(output.kernel_modules_resolved) == tolist(["openvswitch", "geneve", "ip_set", "ip_set_hash_ip", "ip_set_hash_net", "xt_set"])
-    error_message = "the bootstrap loads the tunnel and ipset modules kube-ovn-cni needs"
+    condition     = tolist(output.kernel_modules_resolved) == tolist(["openvswitch", "geneve", "veth", "ip_set", "ip_set_hash_ip", "ip_set_hash_net", "xt_set", "iptable_mangle"])
+    error_message = "the bootstrap loads the tunnel, veth, ipset and mangle modules kube-ovn-cni needs"
+  }
+  assert {
+    condition     = tolist(output.selinux_container_files_resolved) == tolist(["/run/xtables.lock"])
+    error_message = "the bootstrap labels the iptables lock the kube-ovn pods share with the host"
   }
 }
 
 run "cilium_labels_no_host_directories" {
   command = plan
   assert {
-    condition     = length(output.selinux_container_dirs_resolved) == 0 && length(output.kernel_modules_resolved) == 0
-    error_message = "cilium runs privileged and needs no host directory label or module"
+    condition     = length(output.selinux_container_dirs_resolved) == 0 && length(output.selinux_container_files_resolved) == 0 && length(output.kernel_modules_resolved) == 0
+    error_message = "cilium runs privileged and needs no host label or module"
   }
 }
 
