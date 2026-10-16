@@ -83,6 +83,18 @@ run "renewal_timer_ships_by_default" {
   }
 }
 
+run "kernel_modules_reach_every_role" {
+  command = plan
+  variables {
+    agent_pools    = { default = {} }
+    kernel_modules = ["openvswitch", "ip_set"]
+  }
+  assert {
+    condition     = strcontains(output.server_user_data.member, "KERNEL_MODULES=\"openvswitch ip_set\"") && strcontains(output.agent_user_data["default"], "KERNEL_MODULES=\"openvswitch ip_set\"") && strcontains(output.agent_user_data["default"], "/etc/modules-load.d/rke2-foundation.conf")
+    error_message = "the env file carries the modules on servers and agents, and bootstrap.sh loads them"
+  }
+}
+
 run "selinux_dirs_reach_every_role" {
   command = plan
   variables {
