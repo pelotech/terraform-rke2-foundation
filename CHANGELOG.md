@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.4.0...v1.4.1) (2026-10-16)
+
+
+### Chores
+
+* publish each release as an OpenTofu module package on ghcr.io ([#65](https://github.com/pelotech/terraform-rke2-foundation/issues/65)) ([b07bd41](https://github.com/pelotech/terraform-rke2-foundation/commit/b07bd41bdc14acdaa222cc29e2d1d31b0318f5b9))
+
 ## [1.4.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.5...v1.4.0) (2026-10-16)
 
 
