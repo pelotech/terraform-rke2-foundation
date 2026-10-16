@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.5...v1.4.0) (2026-10-16)
+
+
+### Features
+
+* **azure:** pull the cloud-provider chart from an OCI registry ([#63](https://github.com/pelotech/terraform-rke2-foundation/issues/63)) ([2b5aed6](https://github.com/pelotech/terraform-rke2-foundation/commit/2b5aed68b1056ef7bc75fb18d6abef0ef90c8654))
+
 ## [1.3.5](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.4...v1.3.5) (2026-10-16)
 
 
