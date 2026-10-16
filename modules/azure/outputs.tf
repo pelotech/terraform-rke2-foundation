@@ -73,6 +73,11 @@ output "kernel_modules_resolved" {
   value       = local.cni_profile.kernel_modules
 }
 
+output "selinux_container_files_resolved" {
+  description = "Host files the bootstrap labels container_file_t on a host with SELinux on, from the CNI profile; introspection for tests."
+  value       = local.cni_profile.selinux_container_files
+}
+
 output "selinux_container_dirs_resolved" {
   description = "Host directories the bootstrap labels container_file_t on a host with SELinux on, from the CNI profile; introspection for tests."
   value       = local.cni_profile.selinux_container_dirs

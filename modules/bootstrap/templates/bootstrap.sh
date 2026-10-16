@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Installs RKE2 and bootstraps or joins the cluster. /etc/rke2-foundation/env supplies ROLE,
 # INIT_CANDIDATE, REGISTRATION_ADDRESS, RKE2_VERSION, INSTALL_URL, BOOTSTRAP_WAIT_SECONDS, CIS_PROFILE,
-# DISABLE_FIREWALLD, ETCD_DISK_DEVICE, SELINUX_CONTAINER_DIRS, KERNEL_MODULES and SECRETS, the name=path pairs that
+# DISABLE_FIREWALLD, ETCD_DISK_DEVICE, SELINUX_CONTAINER_DIRS, SELINUX_CONTAINER_FILES, KERNEL_MODULES and SECRETS,
+# the name=path pairs that
 # fetch-secrets.sh writes under SECRET_DIR.
 set -euo pipefail
 
@@ -87,11 +88,22 @@ fi
 
 # SELinux lets a pod that runs as container_t write container_file_t only. A file context rule survives a relabel,
 # and /run is empty at boot, so a tmpfiles entry creates those directories again with the same label.
-if [ -n "$SELINUX_CONTAINER_DIRS" ] && selinuxenabled 2>/dev/null; then
+if { [ -n "$SELINUX_CONTAINER_DIRS" ] || [ -n "$SELINUX_CONTAINER_FILES" ]; } && selinuxenabled 2>/dev/null; then
   rm -f /etc/tmpfiles.d/rke2-foundation.conf
   container_context() {
     semanage fcontext -a -t container_file_t "$1(/.*)?" 2>/dev/null || semanage fcontext -m -t container_file_t "$1(/.*)?" 2>/dev/null
   }
+  container_context_file() {
+    semanage fcontext -a -f f -t container_file_t "$1" 2>/dev/null || semanage fcontext -m -f f -t container_file_t "$1" 2>/dev/null
+  }
+  for file in $SELINUX_CONTAINER_FILES; do
+    container_context_file "$file" || { [ "${file#/run/}" != "$file" ] && container_context_file "/var$file"; }
+    case "$file" in
+      /run/*) printf 'f %s 0644 root root -\n' "$file" >> /etc/tmpfiles.d/rke2-foundation.conf ;;
+    esac
+    [ -e "$file" ] || install -m 0644 /dev/null "$file"
+    restorecon "$file"
+  done
   for dir in $SELINUX_CONTAINER_DIRS; do
     # RHEL 9 declares /run an alias of /var/run and only takes rules on the canonical path; RHEL 10 declares the reverse.
     container_context "$dir" || { [ "${dir#/run/}" != "$dir" ] && container_context "/var$dir"; }

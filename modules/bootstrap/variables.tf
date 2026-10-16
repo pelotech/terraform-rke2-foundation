@@ -238,6 +238,17 @@ variable "kernel_modules" {
   }
 }
 
+variable "selinux_container_files" {
+  type        = list(string)
+  default     = []
+  description = "Host files that pods open while they run as container_t, such as the iptables lock kube-ovn shares with the host. On a host with SELinux on, the bootstrap labels them container_file_t with a file context rule, creates them, and adds a tmpfiles entry for those under /run."
+
+  validation {
+    condition     = alltrue([for f in var.selinux_container_files : startswith(f, "/") && !endswith(f, "/")])
+    error_message = "selinux_container_files entries must be absolute file paths."
+  }
+}
+
 variable "selinux_container_dirs" {
   type        = list(string)
   default     = []
