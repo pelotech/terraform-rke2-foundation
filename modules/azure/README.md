@@ -232,8 +232,9 @@ extra_agent_config  = { selinux = true }
 Bake the pinned installer, release tarball and checksum file into the artifact directory. Include the
 matching core image archive, SELinux policy and OS/kernel dependencies. Bake the pinned cloud-provider
 chart under `/var/lib/rancher/rke2/server/static/charts` on every server, and preload the matching
-controller and node-manager images. Its URL replaces the upstream repository and does not increase
-cloud-init size with an embedded chart archive. Other CNI and workload images still require approved
+controller and node-manager images. Its URL replaces the upstream repository; each server embeds the file
+as `chartContent` at boot, since the static endpoint needs authentication the Helm job lacks, so cloud-init
+stays small. Other CNI and workload images still require approved
 delivery. The installer checks the installed binary against `rke2_version` before starting a service.
 Image building and gallery publication belong to the caller; this module consumes their output.
 
@@ -461,7 +462,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="input_admin_username"></a> [admin\_username](#input\_admin\_username) | Linux admin user on every node, with ssh\_public\_key. | `string` | `"rke2admin"` | no |
 | <a name="input_certificate_renewal"></a> [certificate\_renewal](#input\_certificate\_renewal) | Renews node certificates on the nodes themselves with a daily timer; see the bootstrap module. Off, the operator renews by restart or replacement. | `bool` | `true` | no |
 | <a name="input_cis_profile"></a> [cis\_profile](#input\_cis\_profile) | Runs RKE2 with profile cis: the CIS host prerequisites, restricted Pod Security Admission and default network policies. | `bool` | `false` | no |
-| <a name="input_cloud_provider_chart_url"></a> [cloud\_provider\_chart\_url](#input\_cloud\_provider\_chart\_url) | Complete HTTPS URL of the pinned cloud-provider-azure chart archive. Overrides the upstream chart repository. For a baked chart under /var/lib/rancher/rke2/server/static/charts, use https://%{KUBERNETES_API}%/static/charts/<filename>.tgz. The image must carry the corresponding controller/node-manager images. | `string` | `null` | no |
+| <a name="input_cloud_provider_chart_url"></a> [cloud\_provider\_chart\_url](#input\_cloud\_provider\_chart\_url) | Complete HTTPS URL of the pinned cloud-provider-azure chart archive. Overrides the upstream chart repository. For a baked chart under /var/lib/rancher/rke2/server/static/charts, use https://%{KUBERNETES_API}%/static/charts/<filename>.tgz: each server embeds that file as chartContent, since the static endpoint needs authentication the Helm job lacks. The image must carry the corresponding controller/node-manager images. | `string` | `null` | no |
 | <a name="input_cloud_provider_chart_version"></a> [cloud\_provider\_chart\_version](#input\_cloud\_provider\_chart\_version) | cloud-provider-azure chart version. Keep its MAJOR.MINOR equal to the Kubernetes minor in rke2\_version, or set cloud\_provider\_image\_tag when the chart lags Kubernetes. | `string` | `"1.36.0"` | no |
 | <a name="input_cloud_provider_image_tag"></a> [cloud\_provider\_image\_tag](#input\_cloud\_provider\_image\_tag) | Image tag of the cloud-provider-azure controller and node manager, whose minor must equal the Kubernetes minor. null keeps the chart's own tag. Set it when the chart lags Kubernetes. | `string` | `"v1.37.0"` | no |
 | <a name="input_cluster_network"></a> [cluster\_network](#input\_cluster\_network) | Kubernetes-internal ranges, virtual and never routed in Azure. service\_cidr is the ClusterIP range, with a prefix longer than /12; pod\_cidr is the RKE2 cluster-cidr the CNI hands to pods. Neither may overlap the other or the VNet. dns\_service\_ip is the cluster DNS address inside service\_cidr, the tenth address by default. | <pre>object({<br/>    service_cidr   = optional(string, "10.96.0.0/16")<br/>    pod_cidr       = optional(string, "10.244.0.0/16")<br/>    dns_service_ip = optional(string)<br/>  })</pre> | `{}` | no |

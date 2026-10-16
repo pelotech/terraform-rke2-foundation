@@ -97,7 +97,7 @@ variable "install_artifact_path" {
 variable "cloud_provider_chart_url" {
   type        = string
   default     = null
-  description = "Complete HTTPS URL of the pinned cloud-provider-azure chart archive. Overrides the upstream chart repository. For a baked chart under /var/lib/rancher/rke2/server/static/charts, use https://%%{KUBERNETES_API}%/static/charts/<filename>.tgz. The image must carry the corresponding controller/node-manager images."
+  description = "Complete HTTPS URL of the pinned cloud-provider-azure chart archive. Overrides the upstream chart repository. For a baked chart under /var/lib/rancher/rke2/server/static/charts, use https://%%{KUBERNETES_API}%/static/charts/<filename>.tgz: each server embeds that file as chartContent, since the static endpoint needs authentication the Helm job lacks. The image must carry the corresponding controller/node-manager images."
 
   validation {
     condition     = var.cloud_provider_chart_url == null ? true : can(regex("^https://[^[:space:]]+$", var.cloud_provider_chart_url))

@@ -47,6 +47,9 @@ locals {
         chart   = "cloud-provider-azure"
         repo    = "https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo"
         version = var.cloud_provider_chart_version
+        } : startswith(var.cloud_provider_chart_url, "https://%%{KUBERNETES_API}%/static/") ? {
+        # The static endpoint needs authentication the Helm job lacks; bootstrap.sh embeds the baked file instead.
+        chartContent = "__CHART_CONTENT_FROM:/var/lib/rancher/rke2/server/static/${trimprefix(var.cloud_provider_chart_url, "https://%%{KUBERNETES_API}%/static/")}__"
         } : {
         chart = var.cloud_provider_chart_url
         }, {

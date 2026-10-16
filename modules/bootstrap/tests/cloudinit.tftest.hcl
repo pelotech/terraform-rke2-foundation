@@ -28,7 +28,7 @@ run "roles" {
     error_message = "each role lists the secrets it fetches"
   }
   assert {
-    condition     = strcontains(output.server_user_data.member, "/var/lib/rancher/rke2/server/manifests/cloud-provider.yaml") && !strcontains(output.agent_user_data["default"], "server/manifests")
+    condition     = strcontains(output.server_user_data.member, "/var/lib/rancher/rke2/server/manifests/cloud-provider.yaml") && !strcontains(output.agent_user_data["default"], "server/manifests/cloud-provider.yaml")
     error_message = "manifests go to servers only"
   }
   assert {

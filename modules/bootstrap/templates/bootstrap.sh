@@ -105,6 +105,15 @@ if [ -n "$var_lv" ] && [ "${var_lv#/dev/mapper/}" != "$var_lv" ] && lvextend -l 
   fi
 fi
 
+# A HelmChart manifest may name a baked archive to embed: the static endpoint needs authentication the Helm job lacks.
+for manifest in "$DATA_DIR"/server/manifests/*.yaml; do
+  [ -f "$manifest" ] || continue
+  archive=$(sed -n 's/.*__CHART_CONTENT_FROM:\(.*\)__.*/\1/p' "$manifest" | head -1)
+  [ -n "$archive" ] || continue
+  [ -f "$archive" ] || { log "$manifest embeds $archive, which the image does not carry"; exit 1; }
+  sed -i "s|__CHART_CONTENT_FROM:${archive}__|$(base64 -w0 "$archive")|" "$manifest"
+done
+
 log "installing RKE2 $RKE2_VERSION as $ROLE"
 ROLE="$ROLE" RKE2_VERSION="$RKE2_VERSION" INSTALL_URL="$INSTALL_URL" \
   INSTALL_ARTIFACT_PATH="${INSTALL_ARTIFACT_PATH:-}" bash "$LIB_DIR/install-rke2.sh"
