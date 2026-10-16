@@ -57,10 +57,11 @@ run "baked_chart_uses_node_static_endpoint" {
   }
   assert {
     condition = (
-      yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec.chart == "https://%%{KUBERNETES_API}%/static/charts/cloud-provider-azure-1.36.0.tgz" &&
+      yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec.chartContent == "__CHART_CONTENT_FROM:/var/lib/rancher/rke2/server/static/charts/cloud-provider-azure-1.36.0.tgz__" &&
+      !contains(keys(yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec), "chart") &&
       !contains(keys(yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec), "repo") &&
       !contains(keys(yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec), "version")
     )
-    error_message = "A baked chart URL must replace the upstream repository without conflicting chart selectors."
+    error_message = "A baked chart URL becomes a chartContent placeholder the server fills from the file, with no other chart selector."
   }
 }
