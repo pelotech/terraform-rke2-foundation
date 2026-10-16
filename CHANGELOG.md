@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.5](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.4...v1.3.5) (2026-10-16)
+
+
+### Bug Fixes
+
+* **azure:** veth module and the iptables lock label for kube-ovn ([#61](https://github.com/pelotech/terraform-rke2-foundation/issues/61)) ([3d46732](https://github.com/pelotech/terraform-rke2-foundation/commit/3d46732c7bd22f16adb4bd890a5634ac24657b77))
+
 ## [1.3.4](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.3...v1.3.4) (2026-10-16)
 
 
