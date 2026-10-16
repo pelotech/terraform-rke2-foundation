@@ -97,11 +97,26 @@ variable "install_artifact_path" {
 variable "cloud_provider_chart_url" {
   type        = string
   default     = null
-  description = "Complete HTTPS URL of the pinned cloud-provider-azure chart archive. Overrides the upstream chart repository. For a baked chart under /var/lib/rancher/rke2/server/static/charts, use https://%%{KUBERNETES_API}%/static/charts/<filename>.tgz: each server embeds that file as chartContent, since the static endpoint needs authentication the Helm job lacks. The image must carry the corresponding controller/node-manager images."
+  description = "Where the cloud-provider-azure chart comes from instead of the upstream repository: the oci:// path of the chart in a registry, installed at cloud_provider_chart_version with cloud_provider_chart_credential and registry_ca_pem, or the complete HTTPS URL of a chart archive."
 
   validation {
-    condition     = var.cloud_provider_chart_url == null ? true : can(regex("^https://[^[:space:]]+$", var.cloud_provider_chart_url))
-    error_message = "cloud_provider_chart_url must be a complete HTTPS chart archive URL."
+    condition     = var.cloud_provider_chart_url == null ? true : can(regex("^(https|oci)://[^[:space:]]+$", var.cloud_provider_chart_url))
+    error_message = "cloud_provider_chart_url must be an oci:// chart path or a complete HTTPS chart archive URL."
+  }
+}
+
+variable "cloud_provider_chart_credential" {
+  type = object({
+    username = string
+    password = string
+  })
+  default     = null
+  sensitive   = true
+  description = "Registry login the Helm job uses to pull the cloud-provider-azure chart from the oci:// cloud_provider_chart_url. null pulls anonymously."
+
+  validation {
+    condition     = var.cloud_provider_chart_credential == null || can(regex("^oci://", coalesce(var.cloud_provider_chart_url, "")))
+    error_message = "cloud_provider_chart_credential needs an oci:// cloud_provider_chart_url."
   }
 }
 
