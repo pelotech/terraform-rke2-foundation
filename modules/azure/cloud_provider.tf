@@ -30,8 +30,36 @@ locals {
     { key = "node.cloudprovider.kubernetes.io/uninitialized", operator = "Exists", effect = "NoSchedule" },
   ]
 
+  cloud_provider_chart_oci  = startswith(coalesce(var.cloud_provider_chart_url, "-"), "oci://")
+  cloud_provider_chart_host = local.cloud_provider_chart_oci ? split("/", trimprefix(var.cloud_provider_chart_url, "oci://"))[0] : null
+
+  # The Helm job logs in to the chart registry with this Secret and trusts the registry through this ConfigMap.
+  cloud_provider_chart_manifests = merge(
+    local.cloud_provider_chart_oci && var.cloud_provider_chart_credential != null ? {
+      "cloud-provider-chart-registry.yaml" = yamlencode({
+        apiVersion = "v1"
+        kind       = "Secret"
+        metadata   = { name = "cloud-provider-chart-registry", namespace = "kube-system" }
+        type       = "kubernetes.io/dockerconfigjson"
+        stringData = { ".dockerconfigjson" = jsonencode({ auths = { (local.cloud_provider_chart_host) = {
+          username = var.cloud_provider_chart_credential.username
+          password = var.cloud_provider_chart_credential.password
+          auth     = base64encode("${var.cloud_provider_chart_credential.username}:${var.cloud_provider_chart_credential.password}")
+        } } }) }
+      })
+    } : {},
+    local.cloud_provider_chart_oci && var.registry_ca_pem != null ? {
+      "cloud-provider-chart-ca.yaml" = yamlencode({
+        apiVersion = "v1"
+        kind       = "ConfigMap"
+        metadata   = { name = "cloud-provider-chart-ca", namespace = "kube-system" }
+        data       = { "registry-ca.pem" = var.registry_ca_pem }
+      })
+    } : {},
+  )
+
   # RKE2 applies these from its manifests directory; bootstrap: true runs the chart before the nodes are schedulable.
-  server_manifests = merge(local.entra_access_manifests, {
+  server_manifests = merge(local.entra_access_manifests, local.cloud_provider_chart_manifests, {
     "azure-cloud-config.yaml" = yamlencode({
       apiVersion = "v1"
       kind       = "Secret"
@@ -47,31 +75,34 @@ locals {
         chart   = "cloud-provider-azure"
         repo    = "https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo"
         version = var.cloud_provider_chart_version
-        } : startswith(var.cloud_provider_chart_url, "https://%%{KUBERNETES_API}%/static/") ? {
-        # The static endpoint needs authentication the Helm job lacks; bootstrap.sh embeds the baked file instead.
-        chartContent = "__CHART_CONTENT_FROM:/var/lib/rancher/rke2/server/static/${trimprefix(var.cloud_provider_chart_url, "https://%%{KUBERNETES_API}%/static/")}__"
+        } : local.cloud_provider_chart_oci ? {
+        chart   = var.cloud_provider_chart_url
+        version = var.cloud_provider_chart_version
         } : {
         chart = var.cloud_provider_chart_url
-        }, {
-        targetNamespace = "kube-system"
-        bootstrap       = true
-        valuesContent = yamlencode({
-          infra = { clusterName = var.name }
-          cloudControllerManager = merge({
-            # The chart always passes --cloud-config; empty plus dynamic reloading makes the controller read the Secret.
-            cloudConfig            = ""
-            enableDynamicReloading = "true"
-            cloudConfigSecretName  = "azure-cloud-config"
-            configureCloudRoutes   = "false"
-            allocateNodeCidrs      = "false"
-            clusterCIDR            = var.cluster_network.pod_cidr
-            nodeSelector           = { "node-role.kubernetes.io/control-plane" = "true" }
-            tolerations            = local.cloud_provider_tolerations
-          }, local.cloud_provider_image)
-          cloudNodeManager = merge({
-            tolerations = [{ operator = "Exists" }]
-          }, local.cloud_provider_image)
-        })
+        },
+        local.cloud_provider_chart_oci && var.cloud_provider_chart_credential != null ? { dockerRegistrySecret = { name = "cloud-provider-chart-registry" } } : {},
+        local.cloud_provider_chart_oci && var.registry_ca_pem != null ? { repoCAConfigMap = { name = "cloud-provider-chart-ca" } } : {},
+        {
+          targetNamespace = "kube-system"
+          bootstrap       = true
+          valuesContent = yamlencode({
+            infra = { clusterName = var.name }
+            cloudControllerManager = merge({
+              # The chart always passes --cloud-config; empty plus dynamic reloading makes the controller read the Secret.
+              cloudConfig            = ""
+              enableDynamicReloading = "true"
+              cloudConfigSecretName  = "azure-cloud-config"
+              configureCloudRoutes   = "false"
+              allocateNodeCidrs      = "false"
+              clusterCIDR            = var.cluster_network.pod_cidr
+              nodeSelector           = { "node-role.kubernetes.io/control-plane" = "true" }
+              tolerations            = local.cloud_provider_tolerations
+            }, local.cloud_provider_image)
+            cloudNodeManager = merge({
+              tolerations = [{ operator = "Exists" }]
+            }, local.cloud_provider_image)
+          })
       })
     })
   })

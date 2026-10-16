@@ -78,14 +78,6 @@ if [ "$DISABLE_FIREWALLD" = true ] && systemctl is-enabled firewalld.service >/d
   systemctl disable --now firewalld.service
 fi
 
-# Pods run as container_t, which SELinux keeps from loading kernel modules, so the host loads them now and at every boot.
-if [ -n "$KERNEL_MODULES" ]; then
-  tr ' ' '\n' <<<"$KERNEL_MODULES" > /etc/modules-load.d/rke2-foundation.conf
-  for module in $KERNEL_MODULES; do
-    modprobe "$module"
-  done
-fi
-
 # SELinux lets a pod that runs as container_t write container_file_t only. A file context rule survives a relabel,
 # and /run is empty at boot, so a tmpfiles entry creates those directories again with the same label.
 if { [ -n "$SELINUX_CONTAINER_DIRS" ] || [ -n "$SELINUX_CONTAINER_FILES" ]; } && selinuxenabled 2>/dev/null; then
@@ -125,18 +117,18 @@ if [ -n "$var_lv" ] && [ "${var_lv#/dev/mapper/}" != "$var_lv" ] && lvextend -l 
   fi
 fi
 
-# A HelmChart manifest may name a baked archive to embed: the static endpoint needs authentication the Helm job lacks.
-for manifest in "$DATA_DIR"/server/manifests/*.yaml; do
-  [ -f "$manifest" ] || continue
-  archive=$(sed -n 's/.*__CHART_CONTENT_FROM:\(.*\)__.*/\1/p' "$manifest" | head -1)
-  [ -n "$archive" ] || continue
-  [ -f "$archive" ] || { log "$manifest embeds $archive, which the image does not carry"; exit 1; }
-  sed -i "s|__CHART_CONTENT_FROM:${archive}__|$(base64 -w0 "$archive")|" "$manifest"
-done
-
 log "installing RKE2 $RKE2_VERSION as $ROLE"
 ROLE="$ROLE" RKE2_VERSION="$RKE2_VERSION" INSTALL_URL="$INSTALL_URL" \
   INSTALL_ARTIFACT_PATH="${INSTALL_ARTIFACT_PATH:-}" bash "$LIB_DIR/install-rke2.sh"
+
+# Pods run as container_t, which SELinux keeps from loading kernel modules, so the host loads them now and at every
+# boot. After install-rke2.sh, which adds kernel-modules-extra where a RHEL image lacks the netfilter modules.
+if [ -n "$KERNEL_MODULES" ]; then
+  tr ' ' '\n' <<<"$KERNEL_MODULES" > /etc/modules-load.d/rke2-foundation.conf
+  for module in $KERNEL_MODULES; do
+    modprobe "$module"
+  done
+fi
 
 if [ "$CIS_PROFILE" = true ]; then
   for f in /usr/local/share/rke2/rke2-cis-sysctl.conf /usr/share/rke2/rke2-cis-sysctl.conf; do

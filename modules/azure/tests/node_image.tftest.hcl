@@ -50,18 +50,48 @@ run "offline_inputs_reach_all_node_roles" {
   }
 }
 
-run "baked_chart_uses_node_static_endpoint" {
+run "oci_chart_logs_in_and_trusts_the_registry" {
   command = apply
   variables {
-    cloud_provider_chart_url = "https://%%{KUBERNETES_API}%/static/charts/cloud-provider-azure-1.36.0.tgz"
+    cloud_provider_chart_url        = "oci://registry.example.mil/group/project/charts/cloud-provider-azure"
+    cloud_provider_chart_credential = { username = "puller", password = "sentinel-pull-secret" }
+    registry_ca_pem                 = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
   }
   assert {
     condition = (
-      yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec.chartContent == "__CHART_CONTENT_FROM:/var/lib/rancher/rke2/server/static/charts/cloud-provider-azure-1.36.0.tgz__" &&
-      !contains(keys(yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec), "chart") &&
-      !contains(keys(yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec), "repo") &&
-      !contains(keys(yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec), "version")
+      yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec.chart == "oci://registry.example.mil/group/project/charts/cloud-provider-azure" &&
+      yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec.version == "1.36.0" &&
+      yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec.dockerRegistrySecret.name == "cloud-provider-chart-registry" &&
+      yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec.repoCAConfigMap.name == "cloud-provider-chart-ca" &&
+      !contains(keys(yamldecode(output.server_manifests_resolved["cloud-provider-azure.yaml"]).spec), "repo")
     )
-    error_message = "A baked chart URL becomes a chartContent placeholder the server fills from the file, with no other chart selector."
+    error_message = "An oci:// chart is installed by version from the registry, with the pull secret and the CA ConfigMap."
   }
+  assert {
+    condition = (
+      contains(keys(jsondecode(yamldecode(output.server_manifests_resolved["cloud-provider-chart-registry.yaml"]).stringData[".dockerconfigjson"]).auths), "registry.example.mil") &&
+      yamldecode(output.server_manifests_resolved["cloud-provider-chart-ca.yaml"]).data["registry-ca.pem"] == var.registry_ca_pem
+    )
+    error_message = "The Secret logs in to the registry host of the chart path and the ConfigMap carries registry_ca_pem."
+  }
+}
+
+run "oci_chart_without_credential_pulls_anonymously" {
+  command = plan
+  variables {
+    cloud_provider_chart_url = "oci://registry.example.mil/group/project/charts/cloud-provider-azure"
+  }
+  assert {
+    condition     = !contains(keys(output.server_manifests_resolved), "cloud-provider-chart-registry.yaml")
+    error_message = "no credential, no registry Secret"
+  }
+}
+
+run "chart_credential_needs_an_oci_url" {
+  command = plan
+  variables {
+    cloud_provider_chart_url        = "https://charts.example.mil/cloud-provider-azure-1.36.0.tgz"
+    cloud_provider_chart_credential = { username = "puller", password = "sentinel-pull-secret" }
+  }
+  expect_failures = [var.cloud_provider_chart_credential]
 }
