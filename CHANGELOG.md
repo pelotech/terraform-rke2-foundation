@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.4](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.3...v1.3.4) (2026-10-16)
+
+
+### Bug Fixes
+
+* **azure:** load the kube-ovn kernel modules on the host ([#59](https://github.com/pelotech/terraform-rke2-foundation/issues/59)) ([810a0c9](https://github.com/pelotech/terraform-rke2-foundation/commit/810a0c9ffc9757e141fd8bc492d10071d6bd2d2d))
+
 ## [1.3.3](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.2...v1.3.3) (2026-10-16)
 
 
