@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.0...v1.3.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **azure:** name the control-plane VMs vm-&lt;name&gt;-server-&lt;n&gt; ([#52](https://github.com/pelotech/terraform-rke2-foundation/issues/52)) ([228f5e1](https://github.com/pelotech/terraform-rke2-foundation/commit/228f5e1418e350bf93c31568cca9827717a9aa1b))
+
+
+### Chores
+
+* **deps:** update pre-commit hook zizmorcore/zizmor-pre-commit to v1.31.1 ([#53](https://github.com/pelotech/terraform-rke2-foundation/issues/53)) ([86925f4](https://github.com/pelotech/terraform-rke2-foundation/commit/86925f40e1f252e7279794ef2a5cb3fc2b327163))
+
 ## [1.3.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.2.0...v1.3.0) (2026-10-16)
 
 
