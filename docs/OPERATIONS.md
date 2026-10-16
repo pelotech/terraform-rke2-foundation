@@ -22,7 +22,7 @@ sequenceDiagram
     participant K8S as Cluster
     participant TF as Terraform
     participant NEW as New server node
-    OP->>K8S: kubectl delete node NAME-server-1
+    OP->>K8S: kubectl delete node vm-NAME-server-1
     K8S->>K8S: Remove the etcd member
     OP->>TF: terraform apply -replace=module.stack.azurerm_linux_virtual_machine.server[1]
     TF->>NEW: Create the VM
@@ -34,7 +34,7 @@ Replace server node 0 only while the two other server nodes are healthy. A new s
 registration address within `bootstrap_wait_seconds` starts a new, empty cluster. The etcd data disk of a
 server is replaced with it, and the snapshots on that disk go with it.
 
-1. Run `kubectl delete node <name>-server-<i>`.
+1. Run `kubectl delete node vm-<name>-server-<i>`.
 2. Run `terraform apply -replace='module.stack.azurerm_linux_virtual_machine.server[<i>]'`.
 3. Wait until the new node is Ready.
 4. Repeat for the next server node.
@@ -203,7 +203,7 @@ terraform apply -replace='module.stack.module.bootstrap.tls_locally_signed_cert.
 | Load balancers | The Azure Monitor metric Health Probe Status on the internal and the public load balancer |
 
 ```bash
-kubectl -n kube-system exec etcd-<name>-server-0 -- etcdctl \
+kubectl -n kube-system exec etcd-vm-<name>-server-0 -- etcdctl \
   --cacert /var/lib/rancher/rke2/server/tls/etcd/server-ca.crt \
   --cert /var/lib/rancher/rke2/server/tls/etcd/server-client.crt \
   --key /var/lib/rancher/rke2/server/tls/etcd/server-client.key \

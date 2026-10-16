@@ -62,8 +62,8 @@ resource "azurerm_virtual_machine_data_disk_attachment" "etcd" {
 # cloud-provider-azure looks standalone VMs up by the Kubernetes node name, so the VM name is the hostname.
 resource "azurerm_linux_virtual_machine" "server" {
   count                           = var.servers.count
-  name                            = "${var.name}-server-${count.index}"
-  computer_name                   = "${var.name}-server-${count.index}"
+  name                            = "vm-${var.name}-server-${count.index}"
+  computer_name                   = "vm-${var.name}-server-${count.index}"
   location                        = var.location
   resource_group_name             = local.node_resource_group_name
   size                            = var.servers.vm_size
