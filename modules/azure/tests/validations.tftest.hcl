@@ -537,6 +537,22 @@ run "blob_csi_private_dns_zone_ids_must_be_private_dns_zones" {
   expect_failures = [var.blob_csi]
 }
 
+run "blob_csi_private_dns_zone_ids_need_the_private_endpoint" {
+  command = plan
+  variables {
+    blob_csi = { storage_account_name = "acmeplatformdevcsi", network_access = "NodeSubnet", private_dns_zone_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-pdns/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.usgovcloudapi.net"] }
+  }
+  expect_failures = [var.blob_csi]
+}
+
+run "etcd_backup_private_dns_zone_ids_need_the_private_endpoint" {
+  command = plan
+  variables {
+    etcd_backup = { storage_account_name = "acmeplatformdevetcd", network_access = "NodeSubnet", private_dns_zone_ids = ["/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-pdns/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.usgovcloudapi.net"] }
+  }
+  expect_failures = [var.etcd_backup]
+}
+
 run "etcd_backup_private_dns_zone_ids_must_be_private_dns_zones" {
   command = plan
   variables {

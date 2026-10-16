@@ -344,7 +344,7 @@ variable "private_endpoints" {
   }))
   default     = {}
   nullable    = false
-  description = "Private endpoints in the node subnet, one for each target resource. You select the key names. Example subresource_names: [\"blob\"], [\"vault\"], [\"registry\"]."
+  description = "Private endpoints in the node subnet, one for each target resource. You select the key names. Example subresource_names: [\"blob\"], [\"vault\"], [\"registry\"]. An empty private_dns_zone_ids attaches no DNS zone group and leaves the record to the zone's owner."
 }
 
 variable "cluster_network" {
@@ -440,15 +440,15 @@ variable "etcd_backup" {
     network_access       = optional(string, "NodeSubnet")
     private_dns_zone_ids = optional(list(string), [])
   })
-  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage_account_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. network_access is NodeSubnet (default, requires Microsoft.Storage on an existing subnet) or PrivateEndpoint (public networking disabled, Blob endpoint in the node subnet, integrated with private_dns_zone_ids)."
+  description = "Hourly upload of each new etcd snapshot from every server to a private storage account of its own, named storage_account_name, with the server identity, under <name>/<server>/<file>. null uploads nothing. Blob versioning and soft delete are on, and a lifecycle rule deletes snapshots after retention_days. network_access is NodeSubnet (default, requires Microsoft.Storage on an existing subnet) or PrivateEndpoint (public networking disabled, Blob endpoint in the node subnet, integrated with private_dns_zone_ids when given, otherwise the zone's owner creates the record)."
 
   validation {
     condition     = var.etcd_backup == null ? true : contains(["NodeSubnet", "PrivateEndpoint"], var.etcd_backup.network_access)
     error_message = "etcd_backup.network_access must be NodeSubnet or PrivateEndpoint."
   }
   validation {
-    condition     = var.etcd_backup == null ? true : (var.etcd_backup.network_access == "PrivateEndpoint") == (length(var.etcd_backup.private_dns_zone_ids) > 0)
-    error_message = "etcd_backup.private_dns_zone_ids must be nonempty exactly when network_access is PrivateEndpoint."
+    condition     = var.etcd_backup == null ? true : var.etcd_backup.network_access == "PrivateEndpoint" || length(var.etcd_backup.private_dns_zone_ids) == 0
+    error_message = "etcd_backup.private_dns_zone_ids needs network_access PrivateEndpoint."
   }
   validation {
     condition     = var.etcd_backup == null ? true : alltrue([for id in var.etcd_backup.private_dns_zone_ids : can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/privateDnsZones/[^/]+$", id))])
@@ -577,11 +577,11 @@ variable "blob_csi" {
     shared_access_key_enabled = optional(bool, false)
     private_dns_zone_ids      = optional(list(string), [])
   })
-  description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. network_access is NodeSubnet, Public or PrivateEndpoint; extra_subnet_ids extends NodeSubnet access only, and private_dns_zone_ids is required exactly with PrivateEndpoint. The README section \"Storage\" explains each field."
+  description = "Blob storage for the blob CSI driver: a storage account named storage_account_name, the agent identity grant and one private container per name in containers. null creates nothing. network_access is NodeSubnet, Public or PrivateEndpoint; extra_subnet_ids extends NodeSubnet access only, and private_dns_zone_ids attaches the DNS zone group behind PrivateEndpoint; leave it empty when the zone's owner creates the record. The README section \"Storage\" explains each field."
 
   validation {
-    condition     = var.blob_csi == null ? true : (var.blob_csi.network_access == "PrivateEndpoint") == (length(var.blob_csi.private_dns_zone_ids) > 0)
-    error_message = "blob_csi.private_dns_zone_ids must be nonempty exactly when network_access is PrivateEndpoint."
+    condition     = var.blob_csi == null ? true : var.blob_csi.network_access == "PrivateEndpoint" || length(var.blob_csi.private_dns_zone_ids) == 0
+    error_message = "blob_csi.private_dns_zone_ids needs network_access PrivateEndpoint."
   }
   validation {
     condition     = var.blob_csi == null ? true : alltrue([for id in var.blob_csi.private_dns_zone_ids : can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/privateDnsZones/[^/]+$", id))])

@@ -77,10 +77,13 @@ run "private_endpoint_needs_no_service_endpoint" {
   }
 }
 
-run "private_endpoint_requires_dns_zone" {
+run "private_endpoint_without_dns_zone_leaves_the_record_to_the_zone_owner" {
   command = plan
   variables {
     etcd_backup = { storage_account_name = "acmeplatformdevetcd", network_access = "PrivateEndpoint" }
   }
-  expect_failures = [var.etcd_backup]
+  assert {
+    condition     = !azurerm_storage_account.etcd_backup[0].public_network_access_enabled && length(azurerm_private_endpoint.storage["etcd-backup"].private_dns_zone_group) == 0
+    error_message = "Without zone ids the backup endpoint attaches no DNS zone group and public networking stays off."
+  }
 }

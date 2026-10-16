@@ -85,10 +85,13 @@ run "private_endpoint_preserves_keys_and_private_containers" {
   }
 }
 
-run "private_endpoint_requires_dns_zone" {
+run "private_endpoint_without_dns_zone_leaves_the_record_to_the_zone_owner" {
   command = plan
   variables {
     blob_csi = { storage_account_name = "acmeplatformdevcsi", network_access = "PrivateEndpoint" }
   }
-  expect_failures = [var.blob_csi]
+  assert {
+    condition     = !azurerm_storage_account.blob_csi[0].public_network_access_enabled && length(azurerm_private_endpoint.storage["blob-csi"].private_dns_zone_group) == 0
+    error_message = "Without zone ids the Blob endpoint attaches no DNS zone group and public networking stays off."
+  }
 }
