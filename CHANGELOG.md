@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.2.0...v1.3.0) (2026-10-16)
+
+
+### Features
+
+* **azure:** make the private endpoint DNS zone group optional ([#50](https://github.com/pelotech/terraform-rke2-foundation/issues/50)) ([520b457](https://github.com/pelotech/terraform-rke2-foundation/commit/520b457206668c5c480aa8e51eb174275e22bf9a))
+
 ## [1.2.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.1.1...v1.2.0) (2026-10-15)
 
 
