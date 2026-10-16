@@ -81,8 +81,12 @@ fi
 # and /run is empty at boot, so a tmpfiles entry creates those directories again with the same label.
 if [ -n "$SELINUX_CONTAINER_DIRS" ] && selinuxenabled 2>/dev/null; then
   rm -f /etc/tmpfiles.d/rke2-foundation.conf
+  container_context() {
+    semanage fcontext -a -t container_file_t "$1(/.*)?" 2>/dev/null || semanage fcontext -m -t container_file_t "$1(/.*)?" 2>/dev/null
+  }
   for dir in $SELINUX_CONTAINER_DIRS; do
-    semanage fcontext -a -t container_file_t "$dir(/.*)?" 2>/dev/null || semanage fcontext -m -t container_file_t "$dir(/.*)?"
+    # RHEL 9 declares /run an alias of /var/run and only takes rules on the canonical path; RHEL 10 declares the reverse.
+    container_context "$dir" || { [ "${dir#/run/}" != "$dir" ] && container_context "/var$dir"; }
     case "$dir" in
       /run/*) printf 'd %s 0755 root root -\n' "$dir" >> /etc/tmpfiles.d/rke2-foundation.conf ;;
     esac
