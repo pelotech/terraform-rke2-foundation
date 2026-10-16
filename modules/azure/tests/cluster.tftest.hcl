@@ -7,7 +7,7 @@ mock_provider "azurerm" {
 run "servers_defaults" {
   command = plan
   assert {
-    condition     = length(azurerm_linux_virtual_machine.server) == 3 && azurerm_linux_virtual_machine.server[0].name == "platformdev-server-0" && alltrue([for s in azurerm_linux_virtual_machine.server : s.name == s.computer_name])
+    condition     = length(azurerm_linux_virtual_machine.server) == 3 && azurerm_linux_virtual_machine.server[0].name == "vm-platformdev-server-0" && alltrue([for s in azurerm_linux_virtual_machine.server : s.name == s.computer_name])
     error_message = "three servers whose VM name is the hostname, which the cloud provider looks nodes up by"
   }
   assert {
