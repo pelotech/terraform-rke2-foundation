@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.1...v1.3.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* **bootstrap:** accept the SELinux /run alias of RHEL 9 ([#55](https://github.com/pelotech/terraform-rke2-foundation/issues/55)) ([39483df](https://github.com/pelotech/terraform-rke2-foundation/commit/39483dfb180d8f5f438b17037b5be1b6c0688145))
+
 ## [1.3.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.0...v1.3.1) (2026-10-16)
 
 
