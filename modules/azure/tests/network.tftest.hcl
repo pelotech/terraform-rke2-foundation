@@ -156,3 +156,20 @@ run "private_endpoints_land_in_the_node_subnet" {
     error_message = "one private endpoint per key, named pep-<name>-<key> as the Cloud Adoption Framework abbreviates it, with an automatic connection"
   }
 }
+
+run "private_endpoints_without_dns_zone_attach_no_zone_group" {
+  command = plan
+  variables {
+    private_endpoints = {
+      vault = {
+        resource_id          = "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-sec/providers/Microsoft.KeyVault/vaults/kv-shared"
+        subresource_names    = ["vault"]
+        private_dns_zone_ids = []
+      }
+    }
+  }
+  assert {
+    condition     = length(azurerm_private_endpoint.node_subnet["vault"].private_dns_zone_group) == 0
+    error_message = "an empty private_dns_zone_ids attaches no DNS zone group"
+  }
+}

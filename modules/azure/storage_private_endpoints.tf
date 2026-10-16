@@ -31,8 +31,12 @@ resource "azurerm_private_endpoint" "storage" {
     is_manual_connection           = false
   }
 
-  private_dns_zone_group {
-    name                 = "default"
-    private_dns_zone_ids = each.value.private_dns_zone_ids
+  # No zone ids: the zone's owner creates the record, so the applying identity needs no join on the zone.
+  dynamic "private_dns_zone_group" {
+    for_each = length(each.value.private_dns_zone_ids) > 0 ? [1] : []
+    content {
+      name                 = "default"
+      private_dns_zone_ids = each.value.private_dns_zone_ids
+    }
   }
 }
