@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.3](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.2...v1.3.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* **azure:** embed the baked cloud-provider chart as chartContent ([#57](https://github.com/pelotech/terraform-rke2-foundation/issues/57)) ([f40bad8](https://github.com/pelotech/terraform-rke2-foundation/commit/f40bad8115b0db2e33f2bfb7155754bc43d48d7a))
+
 ## [1.3.2](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.3.1...v1.3.2) (2026-10-16)
 
 
