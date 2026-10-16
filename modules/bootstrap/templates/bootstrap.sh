@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs RKE2 and bootstraps or joins the cluster. /etc/rke2-foundation/env supplies ROLE,
 # INIT_CANDIDATE, REGISTRATION_ADDRESS, RKE2_VERSION, INSTALL_URL, BOOTSTRAP_WAIT_SECONDS, CIS_PROFILE,
-# DISABLE_FIREWALLD, ETCD_DISK_DEVICE, SELINUX_CONTAINER_DIRS and SECRETS, the name=path pairs that
+# DISABLE_FIREWALLD, ETCD_DISK_DEVICE, SELINUX_CONTAINER_DIRS, KERNEL_MODULES and SECRETS, the name=path pairs that
 # fetch-secrets.sh writes under SECRET_DIR.
 set -euo pipefail
 
@@ -75,6 +75,14 @@ done
 # RKE2 documents firewalld as incompatible with its networking; a hardened image can keep it with its own rules.
 if [ "$DISABLE_FIREWALLD" = true ] && systemctl is-enabled firewalld.service >/dev/null 2>&1; then
   systemctl disable --now firewalld.service
+fi
+
+# Pods run as container_t, which SELinux keeps from loading kernel modules, so the host loads them now and at every boot.
+if [ -n "$KERNEL_MODULES" ]; then
+  tr ' ' '\n' <<<"$KERNEL_MODULES" > /etc/modules-load.d/rke2-foundation.conf
+  for module in $KERNEL_MODULES; do
+    modprobe "$module"
+  done
 fi
 
 # SELinux lets a pod that runs as container_t write container_file_t only. A file context rule survives a relabel,

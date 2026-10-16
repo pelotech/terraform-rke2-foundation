@@ -167,13 +167,17 @@ run "kube_ovn_adds_the_cni_pool" {
     condition     = tolist(output.selinux_container_dirs_resolved) == tolist(["/etc/origin", "/opt/ovs-config", "/var/log/kube-ovn", "/var/log/ovn", "/var/log/openvswitch", "/run/openvswitch", "/run/ovn"])
     error_message = "the bootstrap labels the kube-ovn host directories for SELinux"
   }
+  assert {
+    condition     = tolist(output.kernel_modules_resolved) == tolist(["openvswitch", "geneve", "ip_set", "ip_set_hash_ip", "ip_set_hash_net", "xt_set"])
+    error_message = "the bootstrap loads the tunnel and ipset modules kube-ovn-cni needs"
+  }
 }
 
 run "cilium_labels_no_host_directories" {
   command = plan
   assert {
-    condition     = length(output.selinux_container_dirs_resolved) == 0
-    error_message = "cilium runs privileged and needs no host directory label"
+    condition     = length(output.selinux_container_dirs_resolved) == 0 && length(output.kernel_modules_resolved) == 0
+    error_message = "cilium runs privileged and needs no host directory label or module"
   }
 }
 

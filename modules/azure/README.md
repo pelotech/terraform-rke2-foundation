@@ -528,6 +528,7 @@ are in the Terraform state, marked sensitive. Protect the state as you would the
 | <a name="output_external_dns_client_id"></a> [external\_dns\_client\_id](#output\_external\_dns\_client\_id) | Client ID of the external-dns workload identity, null unless workload\_identity.external\_dns is set. |
 | <a name="output_external_dns_identity_id"></a> [external\_dns\_identity\_id](#output\_external\_dns\_identity\_id) | Resource ID of the external-dns workload identity, null unless workload\_identity.external\_dns is set. |
 | <a name="output_external_dns_principal_id"></a> [external\_dns\_principal\_id](#output\_external\_dns\_principal\_id) | Principal ID of the external-dns workload identity, for role assignments you create yourself. |
+| <a name="output_kernel_modules_resolved"></a> [kernel\_modules\_resolved](#output\_kernel\_modules\_resolved) | Kernel modules the bootstrap loads on every node, from the CNI profile; introspection for tests. |
 | <a name="output_key_vault_id"></a> [key\_vault\_id](#output\_key\_vault\_id) | ID of the Key Vault holding the tokens, the CA set and the generated SSH key. |
 | <a name="output_key_vault_name"></a> [key\_vault\_name](#output\_key\_vault\_name) | Name of that Key Vault. |
 | <a name="output_kube_exec"></a> [kube\_exec](#output\_kube\_exec) | kubelogin exec block for the helm provider and cni-bootstrap, null unless entra\_oidc is on. Without it, use admin\_client\_certificate and admin\_client\_key. |

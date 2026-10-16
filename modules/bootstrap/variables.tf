@@ -227,6 +227,17 @@ variable "disable_firewalld" {
   description = "Stops and disables firewalld when the image ships it, as RKE2 documents it as incompatible with its networking. Set false on an image whose firewalld rules allow the RKE2 ports."
 }
 
+variable "kernel_modules" {
+  type        = list(string)
+  default     = []
+  description = "Kernel modules the bootstrap loads now and at every boot through modules-load.d, such as the tunnel and ipset modules of kube-ovn. Pods run as container_t, which SELinux keeps from loading modules itself."
+
+  validation {
+    condition     = alltrue([for m in var.kernel_modules : can(regex("^[a-z0-9_-]+$", m))])
+    error_message = "kernel_modules entries must be module names: lowercase letters, digits, underscores and hyphens."
+  }
+}
+
 variable "selinux_container_dirs" {
   type        = list(string)
   default     = []
