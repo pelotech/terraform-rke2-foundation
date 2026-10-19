@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.4.1...v1.5.0) (2026-10-19)
+
+
+### Features
+
+* **azure:** join an agent pool to load balancer backend pools ([#67](https://github.com/pelotech/terraform-rke2-foundation/issues/67)) ([682733a](https://github.com/pelotech/terraform-rke2-foundation/commit/682733a52018f77078051c932ccd7b3be62ecf39))
+
 ## [1.4.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.4.0...v1.4.1) (2026-10-16)
 
 
