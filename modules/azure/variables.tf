@@ -230,9 +230,10 @@ variable "agent_pools" {
       value  = string
       effect = string
     })), {})
+    load_balancer_backend_address_pool_ids = optional(list(string), [])
   }))
   nullable    = false
-  description = "Agent scale sets, keyed by pool name. node_count is the initial size; set min_count and max_count to tag the pool for cluster-autoscaler, which then owns the size. The README section \"Agent pools\" explains the rest."
+  description = "Agent scale sets, keyed by pool name. node_count is the initial size; set min_count and max_count to tag the pool for cluster-autoscaler, which then owns the size. load_balancer_backend_address_pool_ids joins the pool to backend pools of a load balancer the caller owns, at creation only. The README section \"Agent pools\" explains the rest."
 
   validation {
     condition     = length(var.agent_pools) > 0

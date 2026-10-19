@@ -10,6 +10,8 @@ locals {
       os_disk_type    = var.cni.node_pool.os_disk_type
       labels          = local.cni_node_pool_labels
       taints          = local.cni_node_pool_taints
+
+      load_balancer_backend_address_pool_ids = []
     }
   } : {}
   agent_pools              = merge(var.agent_pools, local.cni_agent_pool)
@@ -105,9 +107,10 @@ resource "azurerm_linux_virtual_machine_scale_set" "agent" {
     primary = true
 
     ip_configuration {
-      name      = "primary"
-      primary   = true
-      subnet_id = local.node_subnet_id
+      name                                   = "primary"
+      primary                                = true
+      subnet_id                              = local.node_subnet_id
+      load_balancer_backend_address_pool_ids = each.value.load_balancer_backend_address_pool_ids
     }
   }
 
