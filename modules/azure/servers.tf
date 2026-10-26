@@ -43,7 +43,9 @@ resource "azurerm_managed_disk" "etcd" {
   disk_size_gb         = var.servers.etcd_disk.size_gb
   disk_iops_read_write = var.servers.etcd_disk.iops
   disk_mbps_read_write = var.servers.etcd_disk.mbps
-  tags                 = var.tags
+  # Only governs disk export and upload, not the VM attachment; Azure stores false, so omitting it drifts every plan.
+  public_network_access_enabled = false
+  tags                          = var.tags
 
   lifecycle {
     # A new VM must start from an empty etcd directory, so the disk follows its VM.
