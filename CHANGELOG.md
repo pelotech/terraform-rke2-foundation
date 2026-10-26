@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.1](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.5.0...v1.5.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **azure:** disable public network access on the etcd disk explicitly ([#72](https://github.com/pelotech/terraform-rke2-foundation/issues/72)) ([7be780a](https://github.com/pelotech/terraform-rke2-foundation/commit/7be780a681a0b7e4fd8e3785340edeb407336e2e))
+
+
+### Chores
+
+* **deps:** bump nixpkgs from `151fa4e` to `7fd4004` ([#70](https://github.com/pelotech/terraform-rke2-foundation/issues/70)) ([229453b](https://github.com/pelotech/terraform-rke2-foundation/commit/229453b3d3331b9c5db1ba7eb13e4f8344b2739e))
+* **deps:** update cachix/install-nix-action action to v31.11.3 ([#71](https://github.com/pelotech/terraform-rke2-foundation/issues/71)) ([a93dd56](https://github.com/pelotech/terraform-rke2-foundation/commit/a93dd564dd2e51d93ecd094d689460738b188a11))
+* **deps:** update pre-commit hook antonbabenko/pre-commit-terraform to v1.109.3 ([#69](https://github.com/pelotech/terraform-rke2-foundation/issues/69)) ([a18d224](https://github.com/pelotech/terraform-rke2-foundation/commit/a18d224b87bc530262be7f82dd0e7ad9ab14fee9))
+
 ## [1.5.0](https://github.com/pelotech/terraform-rke2-foundation/compare/v1.4.1...v1.5.0) (2026-10-19)
 
 
