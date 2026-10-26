@@ -266,7 +266,7 @@ run "server_cloud_init_roles" {
 run "etcd_disk_per_server_by_default" {
   command = plan
   assert {
-    condition     = length(azurerm_managed_disk.etcd) == 3 && alltrue([for d in azurerm_managed_disk.etcd : d.storage_account_type == "PremiumV2_LRS" && d.disk_size_gb == 64 && d.disk_iops_read_write == 3000 && d.disk_mbps_read_write == 125])
+    condition     = length(azurerm_managed_disk.etcd) == 3 && alltrue([for d in azurerm_managed_disk.etcd : d.storage_account_type == "PremiumV2_LRS" && d.disk_size_gb == 64 && d.disk_iops_read_write == 3000 && d.disk_mbps_read_write == 125 && !d.public_network_access_enabled])
     error_message = "every server gets a Premium SSD v2 disk for etcd by default"
   }
   assert {
